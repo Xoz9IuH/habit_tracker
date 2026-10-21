@@ -19,8 +19,6 @@ import 'screens/tag_detail_screen.dart';
 import 'screens/tag_form_screen.dart';
 import 'screens/tag_list_screen.dart';
 
-/// Фабрика роутера: fresh GoRoute-объекты на каждый вызов, чтобы маршруты
-/// разных экземпляров приложения не делили состояние.
 GoRouter buildAppRouter({String initialLocation = '/habits'}) {
   return GoRouter(
     initialLocation: initialLocation,

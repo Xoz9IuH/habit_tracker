@@ -1,4 +1,4 @@
-/// Приводит значение к int: принимает и числа, и строки.
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -6,13 +6,11 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-/// Приводит значение к строке: любое не-строковое значение считаем пустым.
 String _asString(Object? value) {
   if (value is String) return value;
   return '';
 }
 
-/// Приводит значение к int или null — для необязательных ссылок.
 int? _asIntOrNull(Object? value) {
   if (value == null) return null;
   if (value is int) return value;
@@ -21,9 +19,6 @@ int? _asIntOrNull(Object? value) {
   return null;
 }
 
-/// Тег привычки — «многие ко многим» с привычками: привычка несёт список
-/// tagIds, тег хранит только свой id и название. Принадлежность к категории
-/// (categoryId) нужна для каскадного сужения списка тегов в форме привычки.
 class Tag {
   final int id;
   final String name;
@@ -82,7 +77,6 @@ class Tag {
   static const _unset = Object();
 }
 
-/// Палитра тегов — используется в форме и в таблице.
 const List<String> tagColors = [
   'синий',
   'зелёный',

@@ -1,4 +1,4 @@
-// Запрос списка категорий: поиск, сортировка, пагинация, «мусорка».
+
 class CategoryQuery {
   final String search;
   final String sortField;

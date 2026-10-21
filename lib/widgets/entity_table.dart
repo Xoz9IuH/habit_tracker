@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Одна обобщённая таблица на все списки: книги, авторы, а позже
-// жанры, издательства, читатели и выдачи. Настраивается описанием
-// колонок — копировать экран целиком под каждую сущность не нужно.
 class TableColumnSpec<T> {
   final String label;
   final String? sortField;
@@ -50,16 +47,13 @@ class EntityTable<T> extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
-        // Двумерная прокрутка: широкая таблица не уезжает за край окна.
+
         scrollDirection: Axis.horizontal,
         child: DataTable(
           sortColumnIndex: sortIndex,
           sortAscending: sortAscending,
           columns: [
-            // Колонку выделения не рисуем сами: DataTable при
-            // DataRow.selected/onSelectChanged строит её сам, вместе
-            // с чекбоксом «выбрать все» в шапке. Своя колонка давала
-            // бы два одинаковых чекбокса в каждой строке.
+
             for (final c in columns)
               DataColumn(
                 label: Text(c.label),
@@ -95,8 +89,7 @@ class EntityTable<T> extends StatelessWidget {
 
   int? _sortColumnIndex() {
     if (sortField == null || onSort == null) return null;
-    // Индекс считается по описанным колонкам: DataTable сам добавляет
-    // колонку выделения слева, отдельно учитывать её не нужно.
+
     var index = 0;
     for (final c in columns) {
       if (c.sortField == sortField) return index;

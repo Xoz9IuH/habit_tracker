@@ -21,8 +21,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
-  // Хранилище читает данные из localStorage (на web) и создаёт их при
-  // первом запуске.
   final prefs = await SharedPreferences.getInstance();
   final store = JsonStore(prefs);
 
@@ -32,7 +30,6 @@ Future<void> main() async {
   final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
   final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
 
-  // Сообщение о миграции формата данных показывается один раз при запуске.
   final notices = <String>[
     if (habitRepo.notice != null) habitRepo.notice!,
     if (categoryRepo.notice != null) categoryRepo.notice!,
@@ -91,7 +88,7 @@ class HabitTrackerApp extends StatelessWidget {
       ),
       routerConfig: appRouter,
       builder: (context, child) {
-        // Сообщения о миграции формата показываем поверх приложения.
+
         final messenger = ScaffoldMessenger.of(context);
         for (final notice in notices) {
           messenger.showSnackBar(SnackBar(content: Text(notice)));

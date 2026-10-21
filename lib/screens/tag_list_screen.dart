@@ -12,7 +12,6 @@ import '../state/tag_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
 import '../widgets/entity_table.dart';
 
-/// Список тегов — сторона связи «многие ко многим» с привычками.
 class TagListScreen extends StatelessWidget {
   const TagListScreen({super.key, required this.initialQuery});
 
@@ -134,4 +133,3 @@ class TagListScreen extends StatelessWidget {
     );
   }
 }
-

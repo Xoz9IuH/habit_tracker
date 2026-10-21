@@ -1,4 +1,4 @@
-// Запрос списка профилей: поиск, фильтр по городу, сортировка, пагинация.
+
 class ProfileQuery {
   final String search;
   final String? city;

@@ -10,8 +10,6 @@ import '../state/category_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
 import '../widgets/entity_table.dart';
 
-/// Список категорий. Удаление категории, на которую ссылаются привычки,
-/// запрещено — приложение сообщает, сколько записей на неё ссылается.
 class CategoryListScreen extends StatelessWidget {
   const CategoryListScreen({super.key, required this.initialQuery});
 
@@ -119,4 +117,3 @@ class CategoryListScreen extends StatelessWidget {
     );
   }
 }
-

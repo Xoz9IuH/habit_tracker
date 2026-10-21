@@ -1,5 +1,4 @@
-/// Приводит значение к int: принимает и числа, и строки.
-/// Данные из хранилища могут прийти в любом виде — падать нельзя.
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -7,15 +6,11 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-/// Приводит значение к строке: любое не-строковое значение считаем пустым.
 String _asString(Object? value) {
   if (value is String) return value;
   return '';
 }
 
-/// Привычка — центральная сущность трекера.
-/// Связи: «многие ко многим» с Tag (список tagIds) и «многие к одному»
-/// с Category (categoryId) и с Profile (profileId).
 class Habit {
   final int id;
   final String name;

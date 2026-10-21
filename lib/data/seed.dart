@@ -1,6 +1,4 @@
-// Демонстрационные данные приложения.
-// В ПР3 появились новые сущности: теги (многие ко многим с привычками),
-// профили (один к одному с настройками) и отметки о выполнении.
+
 import '../models/category.dart';
 import '../models/check_in.dart';
 import '../models/habit.dart';
@@ -123,11 +121,10 @@ const List<Habit> seedHabits = [
   Habit(id: 12, name: 'Скетчинг', goal: 'Один набросок в два дня', categoryId: 6, periodicityId: 2, minutesPerDay: 40, streak: 9, profileId: 2, tagIds: [2]),
   Habit(id: 13, name: 'Изучение Dart', goal: 'Каждый будний день', categoryId: 3, periodicityId: 5, minutesPerDay: 45, streak: 11, profileId: 1, tagIds: [5, 6]),
   Habit(id: 14, name: 'Стирка и сортировка', goal: 'Бельё разложено в шкафу', categoryId: 4, periodicityId: 4, minutesPerDay: 25, streak: 2, profileId: 3, tagIds: [4]),
-  // Привычка 15 удаляется репозиторием при старте — есть что восстановить.
+
   Habit(id: 15, name: 'Соцсети до обеда', goal: 'Отвыкнуть от утреннего скролла', categoryId: 4, periodicityId: 1, minutesPerDay: 10, streak: 0, profileId: 2, tagIds: [4]),
 ];
 
-/// Отметки о выполнении: «многие к одному» к привычке и к профилю.
 final List<CheckIn> seedCheckIns = [
   CheckIn(id: 1, habitId: 1, profileId: 1, date: DateTime(2026, 10, 18), minutes: 15, completed: true, note: 'Легко вышло'),
   CheckIn(id: 2, habitId: 1, profileId: 1, date: DateTime(2026, 10, 19), minutes: 15, completed: true, note: ''),

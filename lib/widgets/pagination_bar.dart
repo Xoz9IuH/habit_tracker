@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Панель пагинации: первая / предыдущая / следующая / последняя,
-// номер текущей страницы, общее число записей, размер страницы.
 class PaginationBar extends StatelessWidget {
   final int page;
   final int totalPages;

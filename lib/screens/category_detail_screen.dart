@@ -7,8 +7,6 @@ import '../repositories/category_repository.dart';
 import '../repositories/habit_repository.dart';
 import '../state/category_list_notifier.dart';
 
-/// Карточка категории. Удаление запрещено, если на категорию ссылаются
-/// привычки — показывается число связанных записей.
 class CategoryDetailScreen extends StatefulWidget {
   final int id;
 
@@ -150,4 +148,3 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     );
   }
 }
-

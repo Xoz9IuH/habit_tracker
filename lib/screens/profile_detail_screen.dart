@@ -7,8 +7,6 @@ import '../repositories/habit_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/profile_list_notifier.dart';
 
-/// Карточка профиля. Настройки — вложенная группа «один к одному»,
-/// показана отдельным блоком.
 class ProfileDetailScreen extends StatefulWidget {
   final int id;
 
@@ -92,7 +90,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               _row('Статус',
                   profile.isDeleted ? 'Удалён (в корзине)' : 'Активен'),
               const SizedBox(height: 20),
-              // Вложенная группа «один к одному».
+
               Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
@@ -169,4 +167,3 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     );
   }
 }
-

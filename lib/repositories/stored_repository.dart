@@ -3,9 +3,6 @@ import 'dart:math' as math;
 import '../models/page_result.dart';
 import '../storage/json_store.dart';
 
-/// Общий каркас репозитория: список в памяти + сохранение в хранилище
-/// после каждого изменения. Наследники реализуют find() — фильтры, поиск,
-/// сортировку и пагинацию для своей сущности.
 abstract class StoredRepository<T> {
   StoredRepository({
     required this.store,
@@ -35,12 +32,10 @@ abstract class StoredRepository<T> {
   late List<T> _items;
   int _nextId = 1;
 
-  /// Сообщение о миграции формата данных (показывается один раз).
   String? notice;
 
   List<T> get all => List.unmodifiable(_items);
 
-  /// Следующий свободный id — выдаётся при создании записи.
   int takeNextId() => _nextId++;
 
   Future<PageResult<T>> find(dynamic query);
@@ -52,10 +47,8 @@ abstract class StoredRepository<T> {
     return null;
   }
 
-  /// Все записи без учёта удалённых — для проверок уникальности и связей.
   List<T> allActive() => _items.where((e) => !isDeleted(e)).toList();
 
-  /// Все записи, включая удалённые.
   List<T> allWithDeleted() => List<T>.from(_items);
 
   bool isDeleted(T item);
@@ -76,8 +69,6 @@ abstract class StoredRepository<T> {
     return item;
   }
 
-  /// Заменить запись в списке — используется наследниками при инициализации
-  /// (например, чтобы отметить часть сидов как удалённые).
   void replace(T item) {
     final index = _items.indexWhere((e) => idOf(e) == idOf(item));
     if (index != -1) _items[index] = item;
@@ -92,7 +83,6 @@ abstract class StoredRepository<T> {
     await store.saveList<T>(name, _items, _toJson);
   }
 
-  /// Страница результата по общему для всех сущностей алгоритму.
   PageResult<T> paginate(List<T> rows, int page, int size) {
     final total = rows.length;
     final from = (page - 1) * size;

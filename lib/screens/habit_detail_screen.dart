@@ -11,7 +11,6 @@ import '../repositories/profile_repository.dart';
 import '../repositories/tag_repository.dart';
 import '../state/habit_list_notifier.dart';
 
-/// Карточка привычки: все связанные данные и операции над записью.
 class HabitDetailScreen extends StatefulWidget {
   final int id;
 
@@ -110,8 +109,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final profileRepo = context.read<ProfileRepository>();
     final checkInRepo = context.read<CheckInRepository>();
 
-    // Название связанной записи берём из репозитория: в приложении могли
-    // создать привычку с новой категорией или профилем.
     final categories = categoryRepo.allActive();
     final profiles = profileRepo.allActive();
     String nameOfCategory(int id) {
@@ -216,4 +213,3 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 }
-

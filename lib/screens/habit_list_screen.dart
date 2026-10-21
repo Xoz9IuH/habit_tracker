@@ -13,8 +13,6 @@ import '../state/habit_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
 import '../widgets/entity_table.dart';
 
-/// Список привычек: поиск, фильтры по категории/периодичности/профилю/тегу,
-/// сортировка, пагинация, выделение и удаление.
 class HabitListScreen extends StatelessWidget {
   const HabitListScreen({super.key, required this.initialQuery});
 
@@ -198,4 +196,3 @@ class HabitListScreen extends StatelessWidget {
     );
   }
 }
-

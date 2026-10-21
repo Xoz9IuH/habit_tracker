@@ -1,4 +1,4 @@
-// Запрос списка тегов: поиск, фильтр по категории, сортировка, пагинация.
+
 class TagQuery {
   final String search;
   final int? categoryId;

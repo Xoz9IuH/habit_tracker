@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-// Поле поиска с задержкой: выборка запускается не на каждое нажатие,
-// а спустя 350 мс после окончания ввода.
 class DebouncedSearchField extends StatefulWidget {
   final String initialValue;
   final String hint;
@@ -33,7 +31,7 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
   @override
   void didUpdateWidget(DebouncedSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Внешний сброс (кнопка «Сбросить») подтягиваем в поле.
+
     if (widget.initialValue != _controller.text) {
       _controller.text = widget.initialValue;
     }

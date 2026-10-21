@@ -16,7 +16,6 @@ import 'package:habit_tracker/repositories/tag_repository.dart';
 import 'package:habit_tracker/storage/json_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Пустое хранилище: тесты работают с чистым localStorage.
 SharedPreferences? _lastPrefs;
 
 Future<JsonStore> _store([Map<String, Object> values = const {}]) async {
@@ -184,7 +183,7 @@ void main() {
       final repo = HabitRepository(store: await _store(), seed: _habits);
 
       expect(await repo.findByName('Бег'), isNotNull);
-      expect(await repo.findByName('бег'), isNotNull); // регистр не важен
+      expect(await repo.findByName('бег'), isNotNull);
       expect(await repo.findByName('Плавание'), isNull);
     });
   });
@@ -215,7 +214,7 @@ void main() {
 
       expect(await repo.findByEmail('a@example.com'), isNotNull);
       expect(await repo.findByEmail('A@EXAMPLE.COM'), isNotNull);
-      // При редактировании профиль не считается дубликатом сам себя.
+
       expect(await repo.findByEmail('a@example.com', excludeId: 1), isNull);
       expect(repo.cities, ['Казань', 'Москва']);
     });
@@ -252,7 +251,6 @@ void main() {
       final repo = HabitRepository(store: store, seed: _habits);
       await repo.softDelete(1, DateTime(2026, 10, 20));
 
-      // Новый репозиторий читает то же хранилище — данные пережили «перезагрузку».
       final store2 = await _store(_prefsSnapshot());
       final repo2 = HabitRepository(store: store2, seed: _habits);
       final restored = await repo2.find(const HabitQuery(includeDeleted: true));
@@ -285,7 +283,7 @@ void main() {
 }
 
 Map<String, Object> _prefsSnapshot() {
-  // Снимок localStorage: ключи хранилища с текущей версией формата.
+
   final prefs = _lastPrefs;
   final result = <String, Object>{};
   if (prefs == null) return result;
@@ -318,7 +316,6 @@ const List<Profile> _profiles = [
   Profile(id: 2, name: 'Мария', email: 'b@example.com', city: 'Казань', dailyGoalMinutes: 60, remindersEnabled: false),
 ];
 
-// DateTime не имеет const-конструктора, поэтому список final.
 final List<CheckIn> _checkIns = [
   CheckIn(id: 1, habitId: 1, profileId: 1, date: DateTime(2026, 10, 18), minutes: 30, completed: true, note: 'ок'),
   CheckIn(id: 2, habitId: 1, profileId: 1, date: DateTime(2026, 10, 19), minutes: 30, completed: true, note: ''),

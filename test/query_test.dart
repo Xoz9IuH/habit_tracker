@@ -115,7 +115,7 @@ void main() {
     final params = checkInQueryToParams(q);
     expect(params['habitId'], '1');
     expect(params['profileId'], '2');
-    expect(params['sort'], 'minutes,desc'); // по умолчанию дата по убыванию
+    expect(params['sort'], 'minutes,desc');
 
     final back = checkInQueryFromParams(params);
     expect(back.search, q.search);

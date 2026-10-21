@@ -6,11 +6,6 @@ import 'debounced_search_field.dart';
 import 'entity_table.dart';
 import 'pagination_bar.dart';
 
-/// Универсальный экран списка: таблица/карточки, поиск, фильтры,
-/// выделение, пагинация и синхронизация адресной строки.
-///
-/// Различия между сущностями вынесены в параметры: набор колонок,
-/// дополнительные фильтры и действия над записью.
 class EntityListScreen<T, Q> extends StatefulWidget {
   final String path;
   final String title;
@@ -73,8 +68,6 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     super.dispose();
   }
 
-  /// Обратная синхронизация: изменение фильтров уезжает в адресную строку,
-  /// поэтому состоянием экрана остаётся URL.
   void _syncUrl() {
     if (!mounted) return;
     final params = widget.queryToParams(widget.notifier.query);
@@ -156,7 +149,6 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     );
   }
 
-  /// Смена страницы и размера страницы — общие операции для всех запросов.
   Q _withPage(Q query, int page) {
     final params = widget.queryToParams(query);
     params['page'] = '$page';
@@ -169,7 +161,6 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     return widget.queryFromParams(params);
   }
 
-  /// Размер страницы — у всех запросов поле называется size.
   int _sizeOf(Q query) {
     try {
       return (query as dynamic).size as int? ?? 10;
@@ -200,7 +191,6 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     );
   }
 
-  /// Значение поиска из запроса — у всех запросов оно называется search.
   String _searchValue(Q query) {
     try {
       final dynamic q = query;

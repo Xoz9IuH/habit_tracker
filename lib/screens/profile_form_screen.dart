@@ -9,9 +9,6 @@ import '../repositories/profile_repository.dart';
 import '../state/profile_list_notifier.dart';
 import '../validation/validators.dart';
 
-/// Форма профиля. Связь «один к одному» с настройками показана вложенной
-/// группой полей: отдельного экрана для настроек нет, они редактируются
-/// прямо здесь.
 class ProfileFormScreen extends StatefulWidget {
   final int? id;
 
@@ -134,7 +131,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
             maxLength: 60,
             validator: (v) => requiredText(v, field: 'город'),
           ),
-          // Связь «один к одному»: настройки вложены в форму профиля.
+
           FieldGroupSpec(
             'Настройки',
             helpText: 'Связь «один к одному» — отдельного экрана нет',
@@ -180,4 +177,3 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
     );
   }
 }
-

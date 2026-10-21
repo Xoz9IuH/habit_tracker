@@ -10,8 +10,6 @@ import '../state/profile_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
 import '../widgets/entity_table.dart';
 
-/// Список профилей. Почта профиля уникальна, профиль с привычками
-/// удалить нельзя — предупреждение со числом связанных записей.
 class ProfileListScreen extends StatelessWidget {
   const ProfileListScreen({super.key, required this.initialQuery});
 
@@ -126,4 +124,3 @@ class ProfileListScreen extends StatelessWidget {
     );
   }
 }
-

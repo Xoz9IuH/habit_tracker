@@ -1,5 +1,4 @@
-/// Приводит значение к int: принимает и числа, и строки.
-/// Данные из хранилища могут прийти в любом виде — падать нельзя.
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -7,14 +6,11 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-/// Приводит значение к строке: любое не-строковое значение считаем пустым.
 String _asString(Object? value) {
   if (value is String) return value;
   return '';
 }
 
-/// Категория привычек — «один ко многим» с привычками: у категории
-/// может быть сколько угодно привычек, у привычки ровно одна категория.
 class Category {
   final int id;
   final String name;

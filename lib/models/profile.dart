@@ -1,4 +1,4 @@
-/// Приводит значение к int: принимает и числа, и строки.
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -6,15 +6,11 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-/// Приводит значение к строке: любое не-строковое значение считаем пустым.
 String _asString(Object? value) {
   if (value is String) return value;
   return '';
 }
 
-/// Профиль пользователя. Связь «один к одному» с настройками:
-/// поля настроек хранятся прямо в профиле, отдельного экрана для них нет —
-/// они редактируются вложенной группой полей внутри формы профиля.
 class Profile {
   final int id;
   final String name;

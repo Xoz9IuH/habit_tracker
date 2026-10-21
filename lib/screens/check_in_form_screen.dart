@@ -11,8 +11,6 @@ import '../repositories/profile_repository.dart';
 import '../state/check_in_list_notifier.dart';
 import '../validation/validators.dart';
 
-/// Форма отметки о выполнении — один экран для создания и изменения.
-/// Связи «многие к одному»: привычка и профиль выбираются из списков.
 class CheckInFormScreen extends StatefulWidget {
   final int? id;
 
@@ -173,4 +171,3 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
     );
   }
 }
-

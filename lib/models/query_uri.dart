@@ -1,6 +1,4 @@
-// Переводы «объект запрос <-> параметры адресной строки» для всех сущностей.
-// Именно эта связка делает URL источником правды: состояние списка
-// восстанавливается по прямой ссылке, а не хранится в виджете.
+
 import 'category_query.dart';
 import 'check_in_query.dart';
 import 'habit_query.dart';
@@ -33,7 +31,6 @@ bool _sortAscending(Map<String, String> p) {
   return parts.length > 1 ? parts[1] != 'desc' : true;
 }
 
-/// /habits?search=бег&categoryId=2&sort=streak,desc&page=2
 Map<String, String> habitQueryToParams(HabitQuery q) {
   final params = <String, String>{};
   if (q.search.isNotEmpty) params['search'] = q.search;

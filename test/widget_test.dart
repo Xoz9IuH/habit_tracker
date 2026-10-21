@@ -38,7 +38,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    // «Многие к одному» — выпадающие списки, «многие ко многим» — чипы.
     expect(find.text('Категория'), findsOneWidget);
     expect(find.text('Профиль'), findsOneWidget);
     expect(find.text('Теги'), findsOneWidget);
@@ -50,7 +49,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    // Нажимаем «Создать» с пустыми полями.
     final button = find.widgetWithText(FilledButton, 'Создать');
     await tester.ensureVisible(button);
     await tester.pumpAndSettle();
@@ -85,7 +83,6 @@ void main() {
   });
 }
 
-/// Приложение с настоящими репозиториями и провайдерами.
 Future<Widget> _app(String initial) async {
   final store = JsonStore(await SharedPreferences.getInstance());
   final habitRepo = HabitRepository(store: store, seed: seedHabits);
@@ -114,4 +111,3 @@ Future<Widget> _app(String initial) async {
     ),
   );
 }
-

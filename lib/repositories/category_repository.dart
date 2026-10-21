@@ -3,8 +3,6 @@ import '../models/category_query.dart';
 import '../models/page_result.dart';
 import 'stored_repository.dart';
 
-/// Хранилище категорий. Заодно отвечает на вопрос «сколько привычек
-/// ссылается на категорию» — без этого нельзя корректно удалить категорию.
 class CategoryRepository extends StoredRepository<Category> {
   CategoryRepository({
     required super.store,

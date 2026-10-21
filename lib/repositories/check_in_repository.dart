@@ -3,7 +3,6 @@ import '../models/check_in_query.dart';
 import '../models/page_result.dart';
 import 'stored_repository.dart';
 
-/// Хранилище отметок о выполнении привычек.
 class CheckInRepository extends StoredRepository<CheckIn> {
   CheckInRepository({
     required super.store,
@@ -62,11 +61,9 @@ class CheckInRepository extends StoredRepository<CheckIn> {
     return paginate(rows, q.page, q.size);
   }
 
-  /// Сколько отметок ссылается на привычку — нужно для проверки удаления.
   int countByHabit(int habitId) =>
       allActive().where((c) => c.habitId == habitId).length;
 
-  /// Сколько отметок ссылается на профиль.
   int countByProfile(int profileId) =>
       allActive().where((c) => c.profileId == profileId).length;
 

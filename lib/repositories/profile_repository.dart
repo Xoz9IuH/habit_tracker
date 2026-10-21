@@ -3,8 +3,6 @@ import '../models/profile_query.dart';
 import '../models/page_result.dart';
 import 'stored_repository.dart';
 
-/// Хранилище профилей. Почта профиля уникальна — проверка выполняется
-/// здесь, а ошибка возвращается в поле формы.
 class ProfileRepository extends StoredRepository<Profile> {
   ProfileRepository({
     required super.store,
@@ -49,8 +47,6 @@ class ProfileRepository extends StoredRepository<Profile> {
     return paginate(rows, q.page, q.size);
   }
 
-  /// Ищет профиль по почте. excludeId нужен при редактировании:
-  /// профиль не считается дубликатом сам себя.
   Future<Profile?> findByEmail(String email, {int? excludeId}) async {
     final needle = email.trim().toLowerCase();
     for (final p in allActive()) {
@@ -60,7 +56,6 @@ class ProfileRepository extends StoredRepository<Profile> {
     return null;
   }
 
-  /// Города, встречающиеся в данных — источник для выпадающего списка.
   List<String> get cities {
     final result = allActive().map((p) => p.city).toSet().toList()..sort();
     return result;

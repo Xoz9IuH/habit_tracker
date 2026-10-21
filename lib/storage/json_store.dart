@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Результат чтения списка из хранилища: сами данные и необязательное
-/// сообщение для пользователя (миграция версии или сброс формата).
 class StoreLoad<T> {
   final List<T> items;
   final String? notice;
@@ -12,29 +10,16 @@ class StoreLoad<T> {
   const StoreLoad(this.items, this.notice);
 }
 
-/// Хранилище на shared_preferences (на web это localStorage).
-///
-/// Ключ включает номер версии формата: `habit_tracker_habits_v2`. Когда
-/// формат меняется, старые данные не ломают приложение — их можно либо
-/// перенести в новый формат, либо сбросить, показав пользователю сообщение.
 class JsonStore {
   JsonStore(this.prefs);
 
   final SharedPreferences prefs;
 
-  /// Текущая версия формата данных. При изменении состава полей её нужно
-  /// поднять — тогда старые записи перестанут разбираться, но не сломают
-  /// приложение.
   static const schemaVersion = 2;
 
-  /// Ключ хранилища для сущности с учётом версии формата.
   String keyFor(String name, int version) =>
       'habit_tracker_${name}_v$version';
 
-  /// Читает список из хранилища.
-  ///
-  /// Порядок: сначала пробуем текущую версию, затем — предыдущие (миграция),
-  /// и только потом идём к демонстрационным данным.
   StoreLoad<T> loadList<T>(
     String name,
     List<T> Function() seed,
@@ -50,7 +35,6 @@ class JsonStore {
       }
     }
 
-    // Миграция: пробуем прочитать данные предыдущих версий формата.
     for (var v = schemaVersion - 1; v >= 1; v--) {
       final oldRaw = prefs.getString(keyFor(name, v));
       if (oldRaw == null) continue;
@@ -64,11 +48,9 @@ class JsonStore {
       );
     }
 
-    // Данных нет (первый запуск) или формат нечитаем — начинаем с сидов.
     return StoreLoad(seed(), null);
   }
 
-  /// Сохраняет список в хранилище.
   Future<void> saveList<T>(
     String name,
     List<T> items,
@@ -90,18 +72,16 @@ class JsonStore {
       }
       return result;
     } catch (_) {
-      // Данные повреждены — считаем, что их нет.
+
       return null;
     }
   }
 
-  /// Сохранение при миграции не должно блокировать чтение, поэтому
-  /// ошибки игнорируются: данные просто перезапишутся при следующем изменении.
   void unawaitedSave(
     String key,
     List<Map<String, dynamic>> items,
   ) {
-    // Ошибка записи не должна ломать чтение: данные перезапишутся позже.
+
     unawaited(prefs.setString(key, jsonEncode(items)).then<bool>((_) {
       return true;
     }).catchError((Object _) {

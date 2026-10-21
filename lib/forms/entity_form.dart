@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'field_spec.dart';
 
-/// Результат отправки формы: значения полей и сообщение об ошибке,
-/// привязанное к конкретному полю (например, «почта уже занята»).
 class FormResult {
   final Map<String, dynamic> values;
   final String? errorField;
@@ -18,12 +16,6 @@ class FormResult {
   bool get hasError => errorMessage != null;
 }
 
-/// Универсальная форма: список описаний полей + общая разметка и общая
-/// обработка отправки. Экраны создания и изменения используют один и тот же
-/// виджет — различается только начальное заполнение.
-///
-/// fieldsBuilder позволяет пересобирать поля по текущим значениям: так
-/// работает каскад — выбор одного поля сужает список значений другого.
 class EntityForm extends StatefulWidget {
   final List<FieldSpec> Function(Map<String, dynamic> values) fieldsBuilder;
   final String submitLabel;
@@ -66,8 +58,6 @@ class EntityFormState extends State<EntityForm> {
     super.dispose();
   }
 
-  /// Разворачивает вложенные группы в плоский список — так удобнее
-  /// инициализировать значения и собирать их при отправке.
   List<FieldSpec> _flatten(List<FieldSpec> fields) {
     final result = <FieldSpec>[];
     for (final spec in fields) {
@@ -96,16 +86,15 @@ class EntityFormState extends State<EntityForm> {
       case SwitchFieldSpec(:final initialValue):
         _values[spec.label] = initialValue;
       case FieldGroupSpec():
-        break; // значения детей инициализируются рекурсивно
+        break;
     }
   }
 
-  /// Значения полей — используются для вычисления каскадных списков.
   Map<String, dynamic> get values => Map.unmodifiable(_values);
 
   void _changed() {
     widget.onDirtyChange?.call();
-    // Пересобираем поля: каскадные списки зависят от текущих значений.
+
     setState(() {});
   }
 
@@ -176,7 +165,7 @@ class EntityFormState extends State<EntityForm> {
   Widget _buildField(FieldSpec spec) {
     switch (spec) {
       case FieldGroupSpec():
-        // Вложенная группа — визуально отдельный блок внутри формы.
+
         return Card(
           margin: EdgeInsets.zero,
           child: Padding(
@@ -341,8 +330,6 @@ class EntityFormState extends State<EntityForm> {
     }
   }
 
-  /// Выпадающий список: значение берётся из состояния формы, а не из
-  /// initialValue виджета — так список корректно обновляется при каскаде.
   Widget _dropdown({
     required String label,
     required Object? initialValue,
@@ -384,8 +371,6 @@ class EntityFormState extends State<EntityForm> {
     );
   }
 
-  /// Контроллер создаётся один раз на поле: пересборка полей при каскаде
-  /// не должна затирать уже введённый текст.
   TextEditingController _controllerFor(String label, String initialValue) {
     return _controllers.putIfAbsent(
       label,
@@ -393,4 +378,3 @@ class EntityFormState extends State<EntityForm> {
     );
   }
 }
-

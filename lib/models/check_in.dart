@@ -1,4 +1,4 @@
-/// Приводит значение к int: принимает и числа, и строки.
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -6,14 +6,11 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-/// Приводит значение к строке: любое не-строковое значение считаем пустым.
 String _asString(Object? value) {
   if (value is String) return value;
   return '';
 }
 
-/// Отметка о выполнении привычки за конкретный день.
-/// Связи: «многие к одному» с Habit (habitId) и с Profile (profileId).
 class CheckIn {
   final int id;
   final int habitId;

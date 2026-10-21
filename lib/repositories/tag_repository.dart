@@ -3,7 +3,6 @@ import '../models/tag_query.dart';
 import '../models/page_result.dart';
 import 'stored_repository.dart';
 
-/// Хранилище тегов. Тег — сторона «многих ко многим» связи с привычками.
 class TagRepository extends StoredRepository<Tag> {
   TagRepository({
     required super.store,

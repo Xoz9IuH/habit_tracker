@@ -12,8 +12,6 @@ import '../state/check_in_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
 import '../widgets/entity_table.dart';
 
-/// Список отметок о выполнении — связь «многие к одному» с привычкой
-/// и с профилем.
 class CheckInListScreen extends StatelessWidget {
   const CheckInListScreen({super.key, required this.initialQuery});
 
@@ -131,4 +129,3 @@ class CheckInListScreen extends StatelessWidget {
     );
   }
 }
-

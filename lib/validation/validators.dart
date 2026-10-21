@@ -1,17 +1,11 @@
-// Общие валидаторы полей формы.
-//
-// Вынесены в отдельный файл, чтобы переиспользоваться между формами:
-// каждый валидатор возвращает строку с ошибкой или null, если значение
-// корректно. Формы просто подставляют их в validator TextFormField.
+
 library;
 
-/// Обязательное поле: значение не должно быть пустым.
 String? requiredText(String? value, {String field = 'Поле'}) {
   if (value == null || value.trim().isEmpty) return 'Заполните $field';
   return null;
 }
 
-/// Ограничение длины строки.
 String? maxLength(String? value, int max, {String field = 'Поле'}) {
   if (value == null) return null;
   if (value.trim().length > max) {
@@ -20,7 +14,6 @@ String? maxLength(String? value, int max, {String field = 'Поле'}) {
   return null;
 }
 
-/// Минимальная длина строки.
 String? minLength(String? value, int min, {String field = 'Поле'}) {
   if (value == null) return null;
   if (value.trim().length < min) {
@@ -29,7 +22,6 @@ String? minLength(String? value, int min, {String field = 'Поле'}) {
   return null;
 }
 
-/// Целое число в диапазоне [min, max].
 String? intRange(
   String? value, {
   int? min,
@@ -48,7 +40,6 @@ String? intRange(
   return null;
 }
 
-/// Положительное число (строго больше нуля) — для минут, серий и лимитов.
 String? positiveInt(String? value, {String field = 'Поле'}) {
   final text = value?.trim() ?? '';
   if (text.isEmpty) return 'Заполните $field';
@@ -58,7 +49,6 @@ String? positiveInt(String? value, {String field = 'Поле'}) {
   return null;
 }
 
-/// Формат электронной почты.
 String? email(String? value, {bool required = true}) {
   final text = value?.trim() ?? '';
   if (text.isEmpty) {
@@ -69,7 +59,6 @@ String? email(String? value, {bool required = true}) {
   return null;
 }
 
-/// Дата не в будущем.
 String? notInFuture(DateTime? value, {String field = 'Дата'}) {
   if (value == null) return 'Выберите $field';
   final now = DateTime.now();
@@ -79,7 +68,6 @@ String? notInFuture(DateTime? value, {String field = 'Дата'}) {
   return null;
 }
 
-/// Дата не раньше указанной.
 String? notBefore(DateTime? value, DateTime min, {String field = 'Дата'}) {
   if (value == null) return 'Выберите $field';
   if (value.isBefore(min)) return '$field не может быть раньше ${min.day}.${min.month}.${min.year}';

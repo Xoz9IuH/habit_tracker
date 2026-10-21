@@ -9,7 +9,6 @@ import '../repositories/category_repository.dart';
 import '../state/category_list_notifier.dart';
 import '../validation/validators.dart';
 
-/// Форма категории — один экран для создания и изменения.
 class CategoryFormScreen extends StatefulWidget {
   final int? id;
 
@@ -147,4 +146,3 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
     );
   }
 }
-

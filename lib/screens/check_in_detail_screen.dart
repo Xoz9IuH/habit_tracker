@@ -8,7 +8,6 @@ import '../repositories/habit_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/check_in_list_notifier.dart';
 
-/// Карточка отметки о выполнении.
 class CheckInDetailScreen extends StatefulWidget {
   final int id;
 
@@ -156,4 +155,3 @@ class _CheckInDetailScreenState extends State<CheckInDetailScreen> {
     );
   }
 }
-

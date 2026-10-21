@@ -10,7 +10,6 @@ import '../repositories/tag_repository.dart';
 import '../state/tag_list_notifier.dart';
 import '../validation/validators.dart';
 
-/// Форма тега — один экран для создания и изменения.
 class TagFormScreen extends StatefulWidget {
   final int? id;
 
@@ -160,4 +159,3 @@ class _TagFormScreenState extends State<TagFormScreen> {
     );
   }
 }
-

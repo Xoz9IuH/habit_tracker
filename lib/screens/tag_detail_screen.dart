@@ -8,7 +8,6 @@ import '../repositories/habit_repository.dart';
 import '../repositories/tag_repository.dart';
 import '../state/tag_list_notifier.dart';
 
-/// Карточка тега. Показывает, сколько привычек ссылается на тег.
 class TagDetailScreen extends StatefulWidget {
   final int id;
 
@@ -149,4 +148,3 @@ class _TagDetailScreenState extends State<TagDetailScreen> {
     );
   }
 }
-

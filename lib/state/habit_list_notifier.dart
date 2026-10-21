@@ -18,7 +18,6 @@ class HabitListNotifier extends ListNotifier<Habit, HabitQuery> {
     }
   }
 
-  /// Сохранить привычку (создание или изменение).
   Future<Habit> save(Habit habit) async {
     if (habit.id == 0) {
       final created = habit.copyWith(id: _repository.takeNextId());

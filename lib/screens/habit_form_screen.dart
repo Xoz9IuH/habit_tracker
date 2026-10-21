@@ -13,12 +13,6 @@ import '../repositories/tag_repository.dart';
 import '../state/habit_list_notifier.dart';
 import '../validation/validators.dart';
 
-/// Форма привычки. Один экран и для создания, и для изменения: различие
-/// только в переданном id.
-///
-/// Здесь собраны все три типа связей:
-/// - «многие к одному» — категория, профиль и периодичность (списки);
-/// - «многие ко многим» — теги (множественный выбор).
 class HabitFormScreen extends StatefulWidget {
   final int? id;
 
@@ -54,7 +48,6 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
     });
   }
 
-  /// Предупреждение о несохранённых изменениях при попытке уйти.
   Future<bool> _confirmLeave() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -124,8 +117,6 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
         final profiles = profileRepo.allActive();
         final allTags = tagRepo.allActive();
 
-        // Каскад: при выбранной категории доступны её теги и общие (без
-        // категории). Список тегов сужается вместе с выбором.
         final selectedCategory = values['Категория'] as int?;
         final visibleTags = allTags
             .where((t) =>
@@ -229,4 +220,3 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
     );
   }
 }
-

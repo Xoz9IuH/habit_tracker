@@ -3,8 +3,6 @@ import '../models/habit_query.dart';
 import '../models/page_result.dart';
 import 'stored_repository.dart';
 
-/// Хранилище привычек — центральная сущность со связями
-/// «многие ко многим» (теги) и «многие к одному» (категория, профиль).
 class HabitRepository extends StoredRepository<Habit> {
   HabitRepository({
     required super.store,
@@ -15,7 +13,7 @@ class HabitRepository extends StoredRepository<Habit> {
           fromJson: Habit.fromJson,
           toJson: (h) => h.toJson(),
         ) {
-    // Привычка 15 удалена с самого старта: в корзине всегда есть что вернуть.
+
     for (final h in all) {
       if (h.id == 15) {
         replace(h.copyWith(deletedAt: DateTime(2026, 10, 1)));
@@ -79,17 +77,13 @@ class HabitRepository extends StoredRepository<Habit> {
     return null;
   }
 
-  /// Сколько активных привычек ссылается на категорию — нужно, чтобы
-  /// предупредить о невозможности удаления.
   int countByCategory(int categoryId) => allActive()
       .where((h) => h.categoryId == categoryId)
       .length;
 
-  /// Сколько активных привычек ссылается на тег.
   int countByTag(int tagId) =>
       allActive().where((h) => h.tagIds.contains(tagId)).length;
 
-  /// Сколько активных привычек принадлежит профилю.
   int countByProfile(int profileId) =>
       allActive().where((h) => h.profileId == profileId).length;
 
