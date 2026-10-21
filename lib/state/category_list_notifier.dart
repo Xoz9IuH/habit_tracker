@@ -1,84 +1,55 @@
-import 'package:flutter/foundation.dart' show ChangeNotifier;
-
 import '../models/category.dart';
 import '../models/category_query.dart';
-import '../models/page_result.dart';
 import '../repositories/category_repository.dart';
-import 'habit_list_notifier.dart' show LoadStatus;
+import 'list_notifier.dart';
 
-class CategoryListNotifier extends ChangeNotifier {
+class CategoryListNotifier extends ListNotifier<Category, CategoryQuery> {
   final CategoryRepository _repository;
 
-  CategoryListNotifier(this._repository);
+  CategoryListNotifier(this._repository) : super(const CategoryQuery());
 
-  CategoryQuery _query = const CategoryQuery();
-  PageResult<Category> _result = PageResult.empty();
-  LoadStatus _status = LoadStatus.idle;
-  String? _error;
-  final Set<int> _selected = {};
-
-  CategoryQuery get query => _query;
-  PageResult<Category> get result => _result;
-  LoadStatus get status => _status;
-  String? get error => _error;
-  Set<int> get selected => Set.unmodifiable(_selected);
-  bool get hasSelection => _selected.isNotEmpty;
-
+  @override
   Future<void> load() async {
-    _status = LoadStatus.loading;
-    _error = null;
-    notifyListeners();
-
+    setStatus(LoadStatus.loading);
     try {
-      _result = await _repository.find(_query);
-      _status = LoadStatus.success;
+      setResult(await _repository.find(query));
     } catch (e) {
-      _error = 'Не удалось загрузить категории: $e';
-      _status = LoadStatus.error;
+      setStatus(LoadStatus.error, error: 'Не удалось загрузить категории: $e');
     }
-    notifyListeners();
   }
 
-  Future<void> applyQuery(CategoryQuery next) async {
-    _query = next;
-    _selected.clear();
+  Future<Category> save(Category category) async {
+    if (category.id == 0) {
+      final created = category.copyWith(id: _repository.takeNextId());
+      final saved = await _repository.create(created);
+      await load();
+      return saved;
+    }
+    final saved = await _repository.update(category);
     await load();
-  }
-
-  void toggleSelection(int id) {
-    _selected.contains(id) ? _selected.remove(id) : _selected.add(id);
-    notifyListeners();
-  }
-
-  void selectAll(Iterable<int> ids) {
-    _selected.addAll(ids);
-    notifyListeners();
-  }
-
-  void clearSelection() {
-    if (_selected.isEmpty) return;
-    _selected.clear();
-    notifyListeners();
-  }
-
-  Future<void> deleteSelected() async {
-    await _repository.deleteMany(_selected.toList());
-    _selected.clear();
-    await load();
+    return saved;
   }
 
   Future<void> softDeleteOne(int id) async {
-    await _repository.softDelete(id);
+    await _repository.softDelete(id, DateTime.now());
     await load();
   }
 
   Future<void> hardDeleteOne(int id) async {
-    await _repository.hardDelete(id);
+    await _repository.remove(id);
     await load();
   }
 
   Future<void> restoreOne(int id) async {
     await _repository.restore(id);
     await load();
+  }
+
+  @override
+  Future<int> deleteSelected() async {
+    final count = await _repository.deleteMany(selected.toList(), DateTime.now());
+    clearSelection();
+    await load();
+    return count;
   }
 }

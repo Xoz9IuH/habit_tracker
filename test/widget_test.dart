@@ -1,81 +1,117 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:habit_tracker/models/habit_query.dart';
+import 'package:habit_tracker/data/seed.dart';
 import 'package:habit_tracker/repositories/category_repository.dart';
+import 'package:habit_tracker/repositories/check_in_repository.dart';
 import 'package:habit_tracker/repositories/habit_repository.dart';
-import 'package:habit_tracker/repositories/in_memory_category_repository.dart';
-import 'package:habit_tracker/repositories/in_memory_habit_repository.dart';
-import 'package:habit_tracker/router.dart' show buildAppRouter;
+import 'package:habit_tracker/repositories/profile_repository.dart';
+import 'package:habit_tracker/repositories/tag_repository.dart';
+import 'package:habit_tracker/router.dart';
 import 'package:habit_tracker/state/category_list_notifier.dart';
+import 'package:habit_tracker/state/check_in_list_notifier.dart';
 import 'package:habit_tracker/state/habit_list_notifier.dart';
+import 'package:habit_tracker/state/profile_list_notifier.dart';
+import 'package:habit_tracker/state/tag_list_notifier.dart';
+import 'package:habit_tracker/storage/json_store.dart';
 import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('список привычек рендерит таблицу, фильтры и пагинацию',
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('список привычек: таблица, фильтры и пагинация',
       (tester) async {
-    await tester.pumpWidget(_app('/habits'));
-    // find в репозитории асинхронный (250 мс) — прогоняем кадры до конца.
+    await tester.pumpWidget(await _app('/habits'));
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Привычки'), findsWidgets);
     expect(find.text('Показывать удалённые'), findsOneWidget);
     expect(find.textContaining('Всего: 14'), findsOneWidget);
-    // Первая страница при сортировке по названию: «8 стаканов воды» идёт первой.
     expect(find.text('8 стаканов воды'), findsOneWidget);
   });
 
-  testWidgets('переход на категории кнопкой в AppBar', (tester) async {
-    await tester.pumpWidget(_app('/habits'));
+  testWidgets('форма привычки показывает все типы связей', (tester) async {
+    await tester.pumpWidget(await _app('/habits/new'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
 
-    await tester.tap(find.text('Категории'));
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
-
-    expect(find.text('Спорт'), findsOneWidget);
-    expect(find.text('Обучение'), findsOneWidget);
+    // «Многие к одному» — выпадающие списки, «многие ко многим» — чипы.
+    expect(find.text('Категория'), findsOneWidget);
+    expect(find.text('Профиль'), findsOneWidget);
+    expect(find.text('Теги'), findsOneWidget);
+    expect(find.text('Новая привычка'), findsOneWidget);
   });
 
-  // Обычный test, а не testWidgets: find() в репозитории использует
-  // Future.delayed, а в fake-async зоне testWidgets таймер без pump не идёт.
-  test('фильтр серии оставляет только сильные привычки', () async {
-    final repo = InMemoryHabitRepository();
-    final page = await repo.find(const HabitQuery(streakFrom: 30, size: 50));
+  testWidgets('валидация показывает ошибки под полями', (tester) async {
+    await tester.pumpWidget(await _app('/habits/new'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(page.items, isNotEmpty);
-    expect(page.items.every((h) => h.streak >= 30), isTrue);
-    // По названию: «8 стаканов…» (49), «Английский…» (35),
-    // «Медитация…» (63), «Утренняя…» (42).
-    expect(page.items.map((h) => h.streak), [49, 35, 63, 42]);
+    // Нажимаем «Создать» с пустыми полями.
+    final button = find.widgetWithText(FilledButton, 'Создать');
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Заполните название'), findsOneWidget);
+    expect(find.text('Выберите категорию'), findsOneWidget);
+    expect(find.text('Выберите хотя бы один тег'), findsOneWidget);
+  });
+
+  testWidgets('форма профиля содержит вложенную группу настроек',
+      (tester) async {
+    await tester.pumpWidget(await _app('/profiles/new'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Настройки'), findsOneWidget);
+    expect(find.text('Цель в минутах в день'), findsOneWidget);
+    expect(find.text('Напоминания включены'), findsOneWidget);
+  });
+
+  testWidgets('список категорий открывается по прямой ссылке',
+      (tester) async {
+    await tester.pumpWidget(await _app('/categories'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Категории'), findsWidgets);
+    expect(find.text('Спорт'), findsOneWidget);
   });
 }
 
-/// Каждый тест получает СВОЙ GoRouter: глобальный appRouter не участвует,
-/// чтобы навигация одного теста не влияла на другой.
-Widget _app(String initial) {
+/// Приложение с настоящими репозиториями и провайдерами.
+Future<Widget> _app(String initial) async {
+  final store = JsonStore(await SharedPreferences.getInstance());
+  final habitRepo = HabitRepository(store: store, seed: seedHabits);
+  final categoryRepo = CategoryRepository(store: store, seed: seedCategories);
+  final tagRepo = TagRepository(store: store, seed: seedTags);
+  final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
+  final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
+
   return MultiProvider(
-    providers: _providers(),
+    providers: [
+      Provider<HabitRepository>.value(value: habitRepo),
+      Provider<CategoryRepository>.value(value: categoryRepo),
+      Provider<TagRepository>.value(value: tagRepo),
+      Provider<ProfileRepository>.value(value: profileRepo),
+      Provider<CheckInRepository>.value(value: checkInRepo),
+      ChangeNotifierProvider(
+          create: (_) => HabitListNotifier(habitRepo)),
+      ChangeNotifierProvider(
+          create: (_) => CategoryListNotifier(categoryRepo)),
+      ChangeNotifierProvider(create: (_) => TagListNotifier(tagRepo)),
+      ChangeNotifierProvider(create: (_) => ProfileListNotifier(profileRepo)),
+      ChangeNotifierProvider(create: (_) => CheckInListNotifier(checkInRepo)),
+    ],
     child: MaterialApp.router(
       routerConfig: buildAppRouter(initialLocation: initial),
     ),
   );
 }
 
-List<SingleChildWidget> _providers() => [
-      Provider<HabitRepository>(create: (_) => InMemoryHabitRepository()),
-      Provider<CategoryRepository>(
-          create: (_) => InMemoryCategoryRepository()),
-      ChangeNotifierProvider(
-        create: (context) => HabitListNotifier(context.read<HabitRepository>()),
-      ),
-      ChangeNotifierProvider(
-        create: (context) =>
-            CategoryListNotifier(context.read<CategoryRepository>()),
-      ),
-    ];

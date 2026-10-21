@@ -1,10 +1,11 @@
 // Запрос списка привычек: поиск, фильтры, сортировка, пагинация, «мусорка».
-// Весь объект неизменяемый; right copyWith page ?? 1 — любой новый запрос
-// всегда начинается с первой страницы.
+// Весь объект неизменяемый; в copyWith страница всегда начинается с первой.
 class HabitQuery {
   final String search;
   final int? categoryId;
   final int? periodicityId;
+  final int? profileId;
+  final int? tagId;
   final int? streakFrom;
   final int? streakTo;
   final String sortField;
@@ -17,6 +18,8 @@ class HabitQuery {
     this.search = '',
     this.categoryId,
     this.periodicityId,
+    this.profileId,
+    this.tagId,
     this.streakFrom,
     this.streakTo,
     this.sortField = 'name',
@@ -30,6 +33,8 @@ class HabitQuery {
     String? search,
     Object? categoryId = _unset,
     Object? periodicityId = _unset,
+    Object? profileId = _unset,
+    Object? tagId = _unset,
     Object? streakFrom = _unset,
     Object? streakTo = _unset,
     String? sortField,
@@ -43,6 +48,8 @@ class HabitQuery {
       categoryId: categoryId == _unset ? this.categoryId : categoryId as int?,
       periodicityId:
           periodicityId == _unset ? this.periodicityId : periodicityId as int?,
+      profileId: profileId == _unset ? this.profileId : profileId as int?,
+      tagId: tagId == _unset ? this.tagId : tagId as int?,
       streakFrom: streakFrom == _unset ? this.streakFrom : streakFrom as int?,
       streakTo: streakTo == _unset ? this.streakTo : streakTo as int?,
       sortField: sortField ?? this.sortField,

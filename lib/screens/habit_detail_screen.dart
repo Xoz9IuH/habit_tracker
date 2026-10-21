@@ -4,9 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../data/seed.dart';
 import '../models/habit.dart';
+import '../repositories/category_repository.dart';
+import '../repositories/check_in_repository.dart';
 import '../repositories/habit_repository.dart';
+import '../repositories/profile_repository.dart';
+import '../repositories/tag_repository.dart';
 import '../state/habit_list_notifier.dart';
 
+/// Карточка привычки: все связанные данные и операции над записью.
 class HabitDetailScreen extends StatefulWidget {
   final int id;
 
@@ -28,26 +33,13 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   Future<void> _load() async {
+    final habit = await context.read<HabitRepository>().findById(widget.id);
+    if (!mounted) return;
     setState(() {
-      _loading = true;
-      _error = null;
+      _habit = habit;
+      _loading = false;
+      if (habit == null) _error = 'Привычка не найдена';
     });
-    try {
-      final habit =
-          await context.read<HabitRepository>().findById(widget.id);
-      if (!mounted) return;
-      setState(() {
-        _habit = habit;
-        _loading = false;
-        if (habit == null) _error = 'Привычка не найдена';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = 'Не удалось загрузить привычку: $e';
-      });
-    }
   }
 
   Future<bool> _confirm(String title, String text) async {
@@ -76,14 +68,20 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_habit?.name ?? 'Загрузка привычки…'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/habits'),
-        ),
+        actions: [
+          if (_habit != null)
+            IconButton(
+              tooltip: 'Изменить',
+              icon: const Icon(Icons.edit),
+              onPressed: () => context.go('/habits/${_habit!.id}/edit'),
+            ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null ? _errorView() : _card(context, _habit!),
+          : _error != null
+              ? _errorView()
+              : _card(context, _habit!),
     );
   }
 
@@ -107,6 +105,37 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
   Widget _card(BuildContext context, Habit habit) {
     final notifier = context.read<HabitListNotifier>();
+    final categoryRepo = context.read<CategoryRepository>();
+    final tagRepo = context.read<TagRepository>();
+    final profileRepo = context.read<ProfileRepository>();
+    final checkInRepo = context.read<CheckInRepository>();
+
+    // Название связанной записи берём из репозитория: в приложении могли
+    // создать привычку с новой категорией или профилем.
+    final categories = categoryRepo.allActive();
+    final profiles = profileRepo.allActive();
+    String nameOfCategory(int id) {
+      for (final c in categories) {
+        if (c.id == id) return c.name;
+      }
+      return '—';
+    }
+
+    String nameOfProfile(int id) {
+      for (final p in profiles) {
+        if (p.id == id) return p.name;
+      }
+      return '—';
+    }
+
+    final activeTags = tagRepo.allActive();
+    final tagNames = <String>[];
+    for (final id in habit.tagIds) {
+      for (final t in activeTags) {
+        if (t.id == id) tagNames.add(t.name);
+      }
+    }
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
@@ -117,12 +146,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             children: [
               _row('Название', habit.name),
               _row('Цель', habit.goal),
-              _row('Категория', categoryName(habit.categoryId)),
+              _row('Категория', nameOfCategory(habit.categoryId)),
+              _row('Профиль', nameOfProfile(habit.profileId)),
               _row('Периодичность', periodicityName(habit.periodicityId)),
+              _row('Теги', tagNames.isEmpty ? '—' : tagNames.join(', ')),
               _row('Минут в день', '${habit.minutesPerDay}'),
               _row('Серия подряд', '${habit.streak} дн.'),
+              _row('Отметок', '${checkInRepo.countByHabit(habit.id)} шт.'),
               _row('Статус',
-                  habit.isDeleted ? 'Удалёна (в корзине)' : 'Активна'),
+                  habit.isDeleted ? 'Удалена (в корзине)' : 'Активна'),
               const SizedBox(height: 20),
               if (!habit.isDeleted)
                 FilledButton.icon(
@@ -184,3 +216,4 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 }
+

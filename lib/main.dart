@@ -1,23 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'data/seed.dart';
 import 'repositories/category_repository.dart';
+import 'repositories/check_in_repository.dart';
 import 'repositories/habit_repository.dart';
-import 'repositories/in_memory_category_repository.dart';
-import 'repositories/in_memory_habit_repository.dart';
+import 'repositories/profile_repository.dart';
+import 'repositories/tag_repository.dart';
 import 'router.dart';
 import 'state/category_list_notifier.dart';
+import 'state/check_in_list_notifier.dart';
 import 'state/habit_list_notifier.dart';
+import 'state/profile_list_notifier.dart';
+import 'state/tag_list_notifier.dart';
+import 'storage/json_store.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
+
+  // Хранилище читает данные из localStorage (на web) и создаёт их при
+  // первом запуске.
+  final prefs = await SharedPreferences.getInstance();
+  final store = JsonStore(prefs);
+
+  final habitRepo = HabitRepository(store: store, seed: seedHabits);
+  final categoryRepo = CategoryRepository(store: store, seed: seedCategories);
+  final tagRepo = TagRepository(store: store, seed: seedTags);
+  final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
+  final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
+
+  // Сообщение о миграции формата данных показывается один раз при запуске.
+  final notices = <String>[
+    if (habitRepo.notice != null) habitRepo.notice!,
+    if (categoryRepo.notice != null) categoryRepo.notice!,
+    if (tagRepo.notice != null) tagRepo.notice!,
+    if (profileRepo.notice != null) profileRepo.notice!,
+    if (checkInRepo.notice != null) checkInRepo.notice!,
+  ];
+
   runApp(
     MultiProvider(
       providers: [
-        Provider<HabitRepository>(create: (_) => InMemoryHabitRepository()),
-        Provider<CategoryRepository>(
-            create: (_) => InMemoryCategoryRepository()),
+        Provider<HabitRepository>.value(value: habitRepo),
+        Provider<CategoryRepository>.value(value: categoryRepo),
+        Provider<TagRepository>.value(value: tagRepo),
+        Provider<ProfileRepository>.value(value: profileRepo),
+        Provider<CheckInRepository>.value(value: checkInRepo),
         ChangeNotifierProvider(
           create: (context) =>
               HabitListNotifier(context.read<HabitRepository>()),
@@ -26,14 +57,28 @@ void main() {
           create: (context) =>
               CategoryListNotifier(context.read<CategoryRepository>()),
         ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              TagListNotifier(context.read<TagRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              ProfileListNotifier(context.read<ProfileRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              CheckInListNotifier(context.read<CheckInRepository>()),
+        ),
       ],
-      child: const HabitTrackerApp(),
+      child: HabitTrackerApp(notices: notices),
     ),
   );
 }
 
 class HabitTrackerApp extends StatelessWidget {
-  const HabitTrackerApp({super.key});
+  const HabitTrackerApp({super.key, this.notices = const []});
+
+  final List<String> notices;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +90,14 @@ class HabitTrackerApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routerConfig: appRouter,
+      builder: (context, child) {
+        // Сообщения о миграции формата показываем поверх приложения.
+        final messenger = ScaffoldMessenger.of(context);
+        for (final notice in notices) {
+          messenger.showSnackBar(SnackBar(content: Text(notice)));
+        }
+        return child ?? const SizedBox.shrink();
+      },
     );
   }
 }
