@@ -1,6 +1,7 @@
 
 import 'category_query.dart';
 import 'check_in_query.dart';
+import 'coupon_query.dart';
 import 'habit_query.dart';
 import 'profile_query.dart';
 import 'tag_query.dart';
@@ -155,6 +156,33 @@ CheckInQuery checkInQueryFromParams(Map<String, String> p) {
     dateFrom: _parseDate(p['dateFrom']),
     dateTo: _parseDate(p['dateTo']),
     sortField: _sortField(p, 'date')!,
+    sortAscending: _sortAscending(p),
+    page: _parseInt(p['page']) ?? 1,
+    size: _parseInt(p['size']) ?? 10,
+    includeDeleted: _parseBool(p['includeDeleted']),
+  );
+}
+
+Map<String, String> couponQueryToParams(CouponQuery q) {
+  final params = <String, String>{};
+  if (q.search.isNotEmpty) params['search'] = q.search;
+  if (q.profileId != null) params['profileId'] = '${q.profileId}';
+  if (q.discountFrom != null) params['discountFrom'] = '${q.discountFrom}';
+  if (q.discountTo != null) params['discountTo'] = '${q.discountTo}';
+  params['sort'] = '${q.sortField},${q.sortAscending ? 'asc' : 'desc'}';
+  if (q.page != 1) params['page'] = '${q.page}';
+  if (q.size != 10) params['size'] = '${q.size}';
+  if (q.includeDeleted) params['includeDeleted'] = 'true';
+  return params;
+}
+
+CouponQuery couponQueryFromParams(Map<String, String> p) {
+  return CouponQuery(
+    search: p['search'] ?? '',
+    profileId: _parseInt(p['profileId']),
+    discountFrom: _parseInt(p['discountFrom']),
+    discountTo: _parseInt(p['discountTo']),
+    sortField: _sortField(p, 'code')!,
     sortAscending: _sortAscending(p),
     page: _parseInt(p['page']) ?? 1,
     size: _parseInt(p['size']) ?? 10,

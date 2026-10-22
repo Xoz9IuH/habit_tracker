@@ -11,6 +11,14 @@ String _asString(Object? value) {
   return '';
 }
 
+int? _asIntOrNull(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
 class Profile {
   final int id;
   final String name;
@@ -18,6 +26,7 @@ class Profile {
   final String city;
   final int dailyGoalMinutes;
   final bool remindersEnabled;
+  final int? couponId;
   final DateTime? deletedAt;
 
   const Profile({
@@ -27,6 +36,7 @@ class Profile {
     required this.city,
     required this.dailyGoalMinutes,
     required this.remindersEnabled,
+    this.couponId,
     this.deletedAt,
   });
 
@@ -39,6 +49,7 @@ class Profile {
     String? city,
     int? dailyGoalMinutes,
     bool? remindersEnabled,
+    Object? couponId = _unset,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
   }) {
@@ -49,6 +60,7 @@ class Profile {
       city: city ?? this.city,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+      couponId: couponId == _unset ? this.couponId : couponId as int?,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     );
   }
@@ -60,6 +72,7 @@ class Profile {
         'city': city,
         'dailyGoalMinutes': dailyGoalMinutes,
         'remindersEnabled': remindersEnabled,
+        'couponId': couponId,
         'deletedAt': deletedAt?.toIso8601String(),
       };
 
@@ -70,8 +83,11 @@ class Profile {
         city: _asString(json['city']),
         dailyGoalMinutes: _asInt(json['dailyGoalMinutes']),
         remindersEnabled: json['remindersEnabled'] == true,
+        couponId: _asIntOrNull(json['couponId']),
         deletedAt: json['deletedAt'] == null
             ? null
             : DateTime.tryParse(_asString(json['deletedAt'])),
       );
+
+  static const _unset = Object();
 }

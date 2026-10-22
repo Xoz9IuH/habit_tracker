@@ -15,7 +15,7 @@ class JsonStore {
 
   final SharedPreferences prefs;
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
 
   String keyFor(String name, int version) =>
       'habit_tracker_${name}_v$version';

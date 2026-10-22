@@ -1,6 +1,7 @@
 
 import '../models/category.dart';
 import '../models/check_in.dart';
+import '../models/coupon.dart';
 import '../models/habit.dart';
 import '../models/profile.dart';
 import '../models/tag.dart';
@@ -87,6 +88,7 @@ const List<Profile> seedProfiles = [
     city: 'Москва',
     dailyGoalMinutes: 120,
     remindersEnabled: true,
+    couponId: 1,
   ),
   Profile(
     id: 2,
@@ -103,6 +105,24 @@ const List<Profile> seedProfiles = [
     city: 'Москва',
     dailyGoalMinutes: 90,
     remindersEnabled: true,
+    couponId: 2,
+  ),
+];
+
+final List<Coupon> seedCoupons = [
+  Coupon(
+    id: 1,
+    profileId: 1,
+    code: 'START-20',
+    discountPercent: 20,
+    expiresAt: DateTime(2026, 12, 31),
+  ),
+  Coupon(
+    id: 2,
+    profileId: 3,
+    code: 'FRIEND-15',
+    discountPercent: 15,
+    expiresAt: DateTime(2026, 11, 30),
   ),
 ];
 

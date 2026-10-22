@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../models/profile_query.dart';
 import '../models/query_uri.dart';
+import '../repositories/coupon_repository.dart';
 import '../repositories/habit_repository.dart';
 import '../state/profile_list_notifier.dart';
 import '../widgets/entity_list_screen.dart';
@@ -19,6 +20,7 @@ class ProfileListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final notifier = context.watch<ProfileListNotifier>();
     final habitRepo = context.read<HabitRepository>();
+    final couponRepo = context.read<CouponRepository>();
 
     return EntityListScreen<Profile, ProfileQuery>(
       path: '/profiles',
@@ -78,6 +80,24 @@ class ProfileListScreen extends StatelessWidget {
       onEdit: (p) => context.go('/profiles/${p.id}/edit'),
       onDelete: (p) async {
         final linked = habitRepo.countByProfile(p.id);
+        final coupon = couponRepo.findByProfile(p.id);
+        if (coupon != null) {
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Удаление невозможно'),
+              content: Text('У профиля «${p.name}» есть скидочный купон '
+                  '«${coupon.code}». Сначала удалите купон.'),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Понятно'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
         if (linked > 0) {
           await showDialog<void>(
             context: context,

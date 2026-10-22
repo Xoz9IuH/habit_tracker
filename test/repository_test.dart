@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/models/category.dart';
+import 'package:habit_tracker/models/coupon.dart';
+import 'package:habit_tracker/models/coupon_query.dart';
 import 'package:habit_tracker/models/category_query.dart';
 import 'package:habit_tracker/models/check_in.dart';
 import 'package:habit_tracker/models/check_in_query.dart';
@@ -9,6 +11,7 @@ import 'package:habit_tracker/models/profile.dart';
 import 'package:habit_tracker/models/tag.dart';
 import 'package:habit_tracker/models/tag_query.dart';
 import 'package:habit_tracker/repositories/category_repository.dart';
+import 'package:habit_tracker/repositories/coupon_repository.dart';
 import 'package:habit_tracker/repositories/check_in_repository.dart';
 import 'package:habit_tracker/repositories/habit_repository.dart';
 import 'package:habit_tracker/repositories/profile_repository.dart';
@@ -245,6 +248,76 @@ void main() {
     });
   });
 
+  group('CouponRepository', () {
+    test('связь один к одному: у профиля один купон', () async {
+      final repo = CouponRepository(store: await _store(), seed: _coupons);
+
+      expect(repo.findByProfile(1)?.code, 'START-20');
+      expect(repo.findByProfile(2), isNull);
+      expect(repo.findByProfile(99), isNull);
+    });
+
+    test('промокод уникален', () async {
+      final repo = CouponRepository(store: await _store(), seed: _coupons);
+
+      expect(repo.findByCode('start-20')?.id, 1);
+      expect(repo.findByCode('FRIEND-15')?.id, 2);
+      expect(repo.findByCode('NEW-10'), isNull);
+
+      expect(repo.findByCode('START-20', excludeId: 1), isNull);
+    });
+
+    test('поиск, фильтры, сортировка и пагинация', () async {
+      final repo = CouponRepository(store: await _store(), seed: _coupons);
+
+      final all = await repo.find(const CouponQuery());
+      expect(all.total, 2);
+
+      final bySearch = await repo.find(const CouponQuery(search: 'friend'));
+      expect(bySearch.total, 1);
+
+      final byProfile = await repo.find(const CouponQuery(profileId: 3));
+      expect(byProfile.total, 1);
+
+      final byDiscount =
+          await repo.find(const CouponQuery(discountFrom: 18));
+      expect(byDiscount.total, 1);
+
+      final desc = await repo.find(
+          const CouponQuery(sortField: 'discount', sortAscending: false));
+      expect(desc.items.first.discountPercent,
+          greaterThanOrEqualTo(desc.items.last.discountPercent));
+    });
+
+    test('удаление и восстановление купона', () async {
+      final repo = CouponRepository(store: await _store(), seed: _coupons);
+
+      await repo.softDelete(1, DateTime(2026, 10, 20));
+      expect((await repo.find(const CouponQuery())).total, 1);
+      expect(
+          (await repo.find(const CouponQuery(includeDeleted: true))).total, 2);
+
+      await repo.restore(1);
+      expect((await repo.find(const CouponQuery())).total, 2);
+    });
+
+    test('купон сериализуется без потерь', () {
+      final coupon = Coupon(
+        id: 7,
+        profileId: 2,
+        code: 'TEST-30',
+        discountPercent: 30,
+        expiresAt: DateTime(2026, 12, 31),
+      );
+      final back = Coupon.fromJson(coupon.toJson());
+      expect(back.id, 7);
+      expect(back.code, 'TEST-30');
+      expect(back.discountPercent, 30);
+      expect(back.profileId, 2);
+      expect(back.expiresAt, DateTime(2026, 12, 31));
+    });
+  });
+
   group('JsonStore', () {
     test('данные сохраняются и читаются обратно', () async {
       final store = await _store();
@@ -314,6 +387,23 @@ const List<Tag> _tags = [
 const List<Profile> _profiles = [
   Profile(id: 1, name: 'Олег', email: 'a@example.com', city: 'Москва', dailyGoalMinutes: 120, remindersEnabled: true),
   Profile(id: 2, name: 'Мария', email: 'b@example.com', city: 'Казань', dailyGoalMinutes: 60, remindersEnabled: false),
+];
+
+final List<Coupon> _coupons = [
+  Coupon(
+    id: 1,
+    profileId: 1,
+    code: 'START-20',
+    discountPercent: 20,
+    expiresAt: DateTime(2026, 12, 31),
+  ),
+  Coupon(
+    id: 2,
+    profileId: 3,
+    code: 'FRIEND-15',
+    discountPercent: 15,
+    expiresAt: DateTime(2026, 11, 30),
+  ),
 ];
 
 final List<CheckIn> _checkIns = [

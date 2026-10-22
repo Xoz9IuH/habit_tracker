@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/models/category_query.dart';
 import 'package:habit_tracker/models/check_in_query.dart';
+import 'package:habit_tracker/models/coupon_query.dart';
 import 'package:habit_tracker/models/habit_query.dart';
 import 'package:habit_tracker/models/profile_query.dart';
 import 'package:habit_tracker/models/query_uri.dart';
@@ -122,6 +123,37 @@ void main() {
     expect(back.habitId, 1);
     expect(back.profileId, 2);
     expect(back.sortField, 'minutes');
+  });
+
+  test('couponQuery: объект -> URL -> объект', () {
+    const q = CouponQuery(
+      search: 'start',
+      profileId: 1,
+      discountFrom: 10,
+      discountTo: 50,
+      sortField: 'discount',
+      sortAscending: false,
+      page: 2,
+      size: 25,
+      includeDeleted: true,
+    );
+
+    final params = couponQueryToParams(q);
+    expect(params['search'], 'start');
+    expect(params['profileId'], '1');
+    expect(params['discountFrom'], '10');
+    expect(params['sort'], 'discount,desc');
+
+    final back = couponQueryFromParams(params);
+    expect(back.search, q.search);
+    expect(back.profileId, q.profileId);
+    expect(back.discountFrom, q.discountFrom);
+    expect(back.discountTo, q.discountTo);
+    expect(back.sortField, q.sortField);
+    expect(back.sortAscending, isFalse);
+    expect(back.page, 2);
+    expect(back.size, 25);
+    expect(back.includeDeleted, isTrue);
   });
 
   test('значения по умолчанию не попадают в URL', () {

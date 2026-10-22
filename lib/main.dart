@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'data/seed.dart';
 import 'repositories/category_repository.dart';
 import 'repositories/check_in_repository.dart';
+import 'repositories/coupon_repository.dart';
 import 'repositories/habit_repository.dart';
 import 'repositories/profile_repository.dart';
 import 'repositories/tag_repository.dart';
 import 'router.dart';
 import 'state/category_list_notifier.dart';
 import 'state/check_in_list_notifier.dart';
+import 'state/coupon_list_notifier.dart';
 import 'state/habit_list_notifier.dart';
 import 'state/profile_list_notifier.dart';
 import 'state/tag_list_notifier.dart';
@@ -29,6 +31,7 @@ Future<void> main() async {
   final tagRepo = TagRepository(store: store, seed: seedTags);
   final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
   final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
+  final couponRepo = CouponRepository(store: store, seed: seedCoupons);
 
   final notices = <String>[
     if (habitRepo.notice != null) habitRepo.notice!,
@@ -36,6 +39,7 @@ Future<void> main() async {
     if (tagRepo.notice != null) tagRepo.notice!,
     if (profileRepo.notice != null) profileRepo.notice!,
     if (checkInRepo.notice != null) checkInRepo.notice!,
+    if (couponRepo.notice != null) couponRepo.notice!,
   ];
 
   runApp(
@@ -46,6 +50,7 @@ Future<void> main() async {
         Provider<TagRepository>.value(value: tagRepo),
         Provider<ProfileRepository>.value(value: profileRepo),
         Provider<CheckInRepository>.value(value: checkInRepo),
+        Provider<CouponRepository>.value(value: couponRepo),
         ChangeNotifierProvider(
           create: (context) =>
               HabitListNotifier(context.read<HabitRepository>()),
@@ -65,6 +70,10 @@ Future<void> main() async {
         ChangeNotifierProvider(
           create: (context) =>
               CheckInListNotifier(context.read<CheckInRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              CouponListNotifier(context.read<CouponRepository>()),
         ),
       ],
       child: HabitTrackerApp(notices: notices),

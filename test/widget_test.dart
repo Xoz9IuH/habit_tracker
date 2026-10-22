@@ -3,12 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/data/seed.dart';
 import 'package:habit_tracker/repositories/category_repository.dart';
 import 'package:habit_tracker/repositories/check_in_repository.dart';
+import 'package:habit_tracker/repositories/coupon_repository.dart';
 import 'package:habit_tracker/repositories/habit_repository.dart';
 import 'package:habit_tracker/repositories/profile_repository.dart';
 import 'package:habit_tracker/repositories/tag_repository.dart';
 import 'package:habit_tracker/router.dart';
 import 'package:habit_tracker/state/category_list_notifier.dart';
 import 'package:habit_tracker/state/check_in_list_notifier.dart';
+import 'package:habit_tracker/state/coupon_list_notifier.dart';
 import 'package:habit_tracker/state/habit_list_notifier.dart';
 import 'package:habit_tracker/state/profile_list_notifier.dart';
 import 'package:habit_tracker/state/tag_list_notifier.dart';
@@ -72,6 +74,26 @@ void main() {
     expect(find.text('Напоминания включены'), findsOneWidget);
   });
 
+  testWidgets('форма профиля содержит вложенную группу купона',
+      (tester) async {
+    await tester.pumpWidget(await _app('/profiles/new'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Скидочный купон'), findsOneWidget);
+    expect(find.text('Промокод'), findsOneWidget);
+    expect(find.text('Скидка, %'), findsOneWidget);
+  });
+
+  testWidgets('список купонов открывается по прямой ссылке', (tester) async {
+    await tester.pumpWidget(await _app('/coupons'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Скидочные купоны'), findsWidgets);
+    expect(find.text('START-20'), findsOneWidget);
+  });
+
   testWidgets('список категорий открывается по прямой ссылке',
       (tester) async {
     await tester.pumpWidget(await _app('/categories'));
@@ -90,6 +112,7 @@ Future<Widget> _app(String initial) async {
   final tagRepo = TagRepository(store: store, seed: seedTags);
   final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
   final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
+  final couponRepo = CouponRepository(store: store, seed: seedCoupons);
 
   return MultiProvider(
     providers: [
@@ -98,6 +121,7 @@ Future<Widget> _app(String initial) async {
       Provider<TagRepository>.value(value: tagRepo),
       Provider<ProfileRepository>.value(value: profileRepo),
       Provider<CheckInRepository>.value(value: checkInRepo),
+      Provider<CouponRepository>.value(value: couponRepo),
       ChangeNotifierProvider(
           create: (_) => HabitListNotifier(habitRepo)),
       ChangeNotifierProvider(
@@ -105,6 +129,7 @@ Future<Widget> _app(String initial) async {
       ChangeNotifierProvider(create: (_) => TagListNotifier(tagRepo)),
       ChangeNotifierProvider(create: (_) => ProfileListNotifier(profileRepo)),
       ChangeNotifierProvider(create: (_) => CheckInListNotifier(checkInRepo)),
+      ChangeNotifierProvider(create: (_) => CouponListNotifier(couponRepo)),
     ],
     child: MaterialApp.router(
       routerConfig: buildAppRouter(initialLocation: initial),

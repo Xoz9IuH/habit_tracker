@@ -8,6 +8,9 @@ import 'screens/category_list_screen.dart';
 import 'screens/check_in_detail_screen.dart';
 import 'screens/check_in_form_screen.dart';
 import 'screens/check_in_list_screen.dart';
+import 'screens/coupon_detail_screen.dart';
+import 'screens/coupon_form_screen.dart';
+import 'screens/coupon_list_screen.dart';
 import 'screens/habit_detail_screen.dart';
 import 'screens/habit_form_screen.dart';
 import 'screens/habit_list_screen.dart';
@@ -157,6 +160,33 @@ GoRouter buildAppRouter({String initialLocation = '/habits'}) {
             return NotFoundScreen(location: state.uri.toString());
           }
           return CheckInDetailScreen(id: id);
+        },
+      ),
+      GoRoute(
+        path: '/coupons',
+        builder: (context, state) => CouponListScreen(
+          key: const ValueKey('coupons'),
+          initialQuery: couponQueryFromParams(state.uri.queryParameters),
+        ),
+      ),
+      GoRoute(
+        path: '/coupons/new',
+        builder: (context, state) => const CouponFormScreen(),
+      ),
+      GoRoute(
+        path: '/coupons/:id/edit',
+        builder: (context, state) => CouponFormScreen(
+          id: int.tryParse(state.pathParameters['id'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: '/coupons/:id',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null) {
+            return NotFoundScreen(location: state.uri.toString());
+          }
+          return CouponDetailScreen(id: id);
         },
       ),
     ],

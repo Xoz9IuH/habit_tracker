@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/profile.dart';
+import '../repositories/coupon_repository.dart';
 import '../repositories/habit_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/profile_list_notifier.dart';
@@ -73,6 +74,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
 
   Widget _card(BuildContext context, Profile profile) {
     final notifier = context.read<ProfileListNotifier>();
+    final couponRepo = context.read<CouponRepository>();
+    final coupon = couponRepo.findByProfile(profile.id);
     final linked = context.read<HabitRepository>().countByProfile(profile.id);
 
     return Center(
@@ -87,6 +90,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               _row('Почта', profile.email),
               _row('Город', profile.city),
               _row('Привычек', '$linked шт.'),
+              _row('Скидочный купон',
+                  coupon == null ? 'нет' : coupon.code),
               _row('Статус',
                   profile.isDeleted ? 'Удалён (в корзине)' : 'Активен'),
               const SizedBox(height: 20),
