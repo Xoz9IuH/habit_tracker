@@ -8,6 +8,7 @@ import '../models/coupon.dart';
 import '../repositories/coupon_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/coupon_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class CouponFormScreen extends StatefulWidget {
@@ -51,7 +52,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -97,7 +99,6 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final repo = context.read<CouponRepository>();
     final profileRepo = context.read<ProfileRepository>();
     final notifier = context.read<CouponListNotifier>();
     final c = _coupon;
@@ -126,9 +127,7 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
           DropdownFieldSpec(
             'Профиль',
             initialValue: c?.profileId,
-            items: [
-              for (final p in profiles) DropdownOption(p.id, p.name),
-            ],
+            items: [for (final p in profiles) DropdownOption(p.id, p.name)],
             validator: (v) => v == null ? 'Выберите профиль' : null,
             helpText: 'Связь «один к одному»: у профиля один купон',
           ),
@@ -139,8 +138,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
           ),
           DateFieldSpec(
             'Действует до',
-            initialValue: c?.expiresAt ??
-                DateTime.now().add(const Duration(days: 30)),
+            initialValue:
+                c?.expiresAt ?? DateTime.now().add(const Duration(days: 30)),
             validator: (v) {
               final date = v;
               if (date == null) return 'Выберите срок действия';
@@ -155,28 +154,30 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
         ];
       },
       onSubmit: (values) async {
-        final code = (values['Промокод'] as String).trim();
-        final same = repo.findByCode(code, excludeId: widget.id);
-        if (same != null) {
-          return const FormResult(
-            values: {},
-            errorField: 'Промокод',
-            errorMessage: 'Такой промокод уже есть',
+        try {
+          final saved = await notifier.save(
+            Coupon(
+              id: widget.id ?? 0,
+              profileId: values['Профиль'] as int,
+              code: (values['Промокод'] as String).trim(),
+              discountPercent:
+                  int.tryParse((values['Скидка, %'] as String).trim()) ?? 0,
+              expiresAt:
+                  values['Действует до'] as DateTime? ??
+                  DateTime.now().add(const Duration(days: 30)),
+            ),
           );
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/coupons/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'code': 'Промокод',
+            'profileId': 'Профиль',
+            'discountPercent': 'Скидка, %',
+            'expiresAt': 'Действует до',
+          });
         }
-        final saved = await repo.saveCoupon(Coupon(
-          id: widget.id ?? 0,
-          profileId: values['Профиль'] as int,
-          code: code,
-          discountPercent:
-              int.tryParse((values['Скидка, %'] as String).trim()) ?? 0,
-          expiresAt: values['Действует до'] as DateTime? ??
-              DateTime.now().add(const Duration(days: 30)),
-        ));
-        await notifier.load();
-        if (!context.mounted) return const FormResult(values: {});
-        context.go('/coupons/${saved.id}');
-        return const FormResult(values: {});
       },
     );
   }

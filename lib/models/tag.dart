@@ -1,4 +1,3 @@
-
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -48,31 +47,30 @@ class Tag {
       id: id ?? this.id,
       name: name ?? this.name,
       color: color ?? this.color,
-      categoryId:
-          categoryId == _unset ? this.categoryId : categoryId as int?,
+      categoryId: categoryId == _unset ? this.categoryId : categoryId as int?,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'color': color,
-        'categoryId': categoryId,
-        'deletedAt': deletedAt?.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'color': color,
+    'categoryId': categoryId,
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
 
   factory Tag.fromJson(Map<String, dynamic> json) => Tag(
-        id: _asInt(json['id']),
-        name: _asString(json['name']),
-        color: _asString(json['color']).isEmpty
-            ? 'синий'
-            : _asString(json['color']),
-        categoryId: _asIntOrNull(json['categoryId']),
-        deletedAt: json['deletedAt'] == null
-            ? null
-            : DateTime.tryParse(_asString(json['deletedAt'])),
-      );
+    id: _asInt(json['id']),
+    name: _asString(json['name']),
+    color: _asString(json['color']).isEmpty
+        ? 'синий'
+        : _asString(json['color']),
+    categoryId: _asIntOrNull(json['categoryId']),
+    deletedAt: json['deletedAt'] == null
+        ? null
+        : DateTime.tryParse(_asString(json['deletedAt'])),
+  );
 
   static const _unset = Object();
 }

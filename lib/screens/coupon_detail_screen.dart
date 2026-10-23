@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_exceptions.dart';
+
 import '../models/coupon.dart';
 import '../repositories/coupon_repository.dart';
 import '../repositories/profile_repository.dart';
@@ -28,14 +30,21 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
   }
 
   Future<void> _load() async {
-    final coupon =
-        await context.read<CouponRepository>().findById(widget.id);
-    if (!context.mounted) return;
-    setState(() {
-      _coupon = coupon;
-      _loading = false;
-      if (coupon == null) _error = 'Купон не найден';
-    });
+    try {
+      final coupon = await context.read<CouponRepository>().findById(widget.id);
+      if (!context.mounted) return;
+      setState(() {
+        _coupon = coupon;
+        _loading = false;
+        if (coupon == null) _error = 'Купон не найден';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = errorText(e);
+      });
+    }
   }
 
   Future<bool> _confirm(String title, String text) async {
@@ -76,20 +85,20 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.go('/coupons'),
-                        child: const Text('К списку купонов'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.go('/coupons'),
+                    child: const Text('К списку купонов'),
                   ),
-                )
-              : _card(context, _coupon!),
+                ],
+              ),
+            )
+          : _card(context, _coupon!),
     );
   }
 
@@ -113,15 +122,19 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
               _row('Промокод', coupon.code),
               _row('Профиль', profileName),
               _row('Скидка', '${coupon.discountPercent}%'),
-              _row('Действует до',
-                  '${coupon.expiresAt.day}.${coupon.expiresAt.month}.${coupon.expiresAt.year}'),
+              _row(
+                'Действует до',
+                '${coupon.expiresAt.day}.${coupon.expiresAt.month}.${coupon.expiresAt.year}',
+              ),
               _row('Состояние', active ? 'активен' : 'истёк или удалён'),
               const SizedBox(height: 20),
               if (!coupon.isDeleted)
                 FilledButton.icon(
                   onPressed: () async {
-                    if (!await _confirm('Удалить купон?',
-                        'Купон уйдёт в корзину, его можно будет вернуть.')) {
+                    if (!await _confirm(
+                      'Удалить купон?',
+                      'Купон уйдёт в корзину, его можно будет вернуть.',
+                    )) {
                       return;
                     }
                     await notifier.softDeleteOne(coupon.id);
@@ -154,8 +167,10 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
         children: [
           SizedBox(
             width: 150,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(child: Text(value)),
         ],

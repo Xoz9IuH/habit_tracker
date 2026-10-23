@@ -1,4 +1,3 @@
-
 class CheckInQuery {
   final String search;
   final int? habitId;

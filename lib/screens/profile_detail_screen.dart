@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_exceptions.dart';
+
 import '../models/profile.dart';
 import '../repositories/coupon_repository.dart';
 import '../repositories/habit_repository.dart';
@@ -29,13 +31,23 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Future<void> _load() async {
-    final profile = await context.read<ProfileRepository>().findById(widget.id);
-    if (!mounted) return;
-    setState(() {
-      _profile = profile;
-      _loading = false;
-      if (profile == null) _error = 'Профиль не найден';
-    });
+    try {
+      final profile = await context.read<ProfileRepository>().findById(
+        widget.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _loading = false;
+        if (profile == null) _error = 'Профиль не найден';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = errorText(e);
+      });
+    }
   }
 
   @override
@@ -55,20 +67,20 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.go('/profiles'),
-                        child: const Text('К списку профилей'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.go('/profiles'),
+                    child: const Text('К списку профилей'),
                   ),
-                )
-              : _card(context, _profile!),
+                ],
+              ),
+            )
+          : _card(context, _profile!),
     );
   }
 
@@ -90,10 +102,11 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               _row('Почта', profile.email),
               _row('Город', profile.city),
               _row('Привычек', '$linked шт.'),
-              _row('Скидочный купон',
-                  coupon == null ? 'нет' : coupon.code),
-              _row('Статус',
-                  profile.isDeleted ? 'Удалён (в корзине)' : 'Активен'),
+              _row('Скидочный купон', coupon == null ? 'нет' : coupon.code),
+              _row(
+                'Статус',
+                profile.isDeleted ? 'Удалён (в корзине)' : 'Активен',
+              ),
               const SizedBox(height: 20),
 
               Card(
@@ -103,13 +116,19 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Настройки',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Настройки',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 12),
-                      _row('Цель в минутах в день',
-                          '${profile.dailyGoalMinutes}'),
-                      _row('Напоминания',
-                          profile.remindersEnabled ? 'включены' : 'выключены'),
+                      _row(
+                        'Цель в минутах в день',
+                        '${profile.dailyGoalMinutes}',
+                      ),
+                      _row(
+                        'Напоминания',
+                        profile.remindersEnabled ? 'включены' : 'выключены',
+                      ),
                     ],
                   ),
                 ),
@@ -119,19 +138,21 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 FilledButton.icon(
                   onPressed: linked > 0
                       ? () => showDialog<void>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Удаление невозможно'),
-                              content: Text('На профиль «${profile.name}» '
-                                  'ссылаются привычки: $linked шт.'),
-                              actions: [
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Понятно'),
-                                ),
-                              ],
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Удаление невозможно'),
+                            content: Text(
+                              'На профиль «${profile.name}» '
+                              'ссылаются привычки: $linked шт.',
                             ),
-                          )
+                            actions: [
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Понятно'),
+                              ),
+                            ],
+                          ),
+                        )
                       : () async {
                           await notifier.softDeleteOne(profile.id);
                           if (context.mounted) context.go('/profiles');
@@ -163,8 +184,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         children: [
           SizedBox(
             width: 190,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(child: Text(value)),
         ],

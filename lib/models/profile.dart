@@ -1,4 +1,3 @@
-
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -66,28 +65,28 @@ class Profile {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'city': city,
-        'dailyGoalMinutes': dailyGoalMinutes,
-        'remindersEnabled': remindersEnabled,
-        'couponId': couponId,
-        'deletedAt': deletedAt?.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'city': city,
+    'dailyGoalMinutes': dailyGoalMinutes,
+    'remindersEnabled': remindersEnabled,
+    'couponId': couponId,
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
-        id: _asInt(json['id']),
-        name: _asString(json['name']),
-        email: _asString(json['email']),
-        city: _asString(json['city']),
-        dailyGoalMinutes: _asInt(json['dailyGoalMinutes']),
-        remindersEnabled: json['remindersEnabled'] == true,
-        couponId: _asIntOrNull(json['couponId']),
-        deletedAt: json['deletedAt'] == null
-            ? null
-            : DateTime.tryParse(_asString(json['deletedAt'])),
-      );
+    id: _asInt(json['id']),
+    name: _asString(json['name']),
+    email: _asString(json['email']),
+    city: _asString(json['city']),
+    dailyGoalMinutes: _asInt(json['dailyGoalMinutes']),
+    remindersEnabled: json['remindersEnabled'] == true,
+    couponId: _asIntOrNull(json['couponId']),
+    deletedAt: json['deletedAt'] == null
+        ? null
+        : DateTime.tryParse(_asString(json['deletedAt'])),
+  );
 
   static const _unset = Object();
 }

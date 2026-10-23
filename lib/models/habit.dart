@@ -1,4 +1,3 @@
-
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -66,33 +65,31 @@ class Habit {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'goal': goal,
-        'categoryId': categoryId,
-        'periodicityId': periodicityId,
-        'minutesPerDay': minutesPerDay,
-        'streak': streak,
-        'profileId': profileId,
-        'tagIds': tagIds,
-        'deletedAt': deletedAt?.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'goal': goal,
+    'categoryId': categoryId,
+    'periodicityId': periodicityId,
+    'minutesPerDay': minutesPerDay,
+    'streak': streak,
+    'profileId': profileId,
+    'tagIds': tagIds,
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
 
   factory Habit.fromJson(Map<String, dynamic> json) => Habit(
-        id: _asInt(json['id']),
-        name: _asString(json['name']),
-        goal: _asString(json['goal']),
-        categoryId: _asInt(json['categoryId']),
-        periodicityId: _asInt(json['periodicityId']),
-        minutesPerDay: _asInt(json['minutesPerDay']),
-        streak: _asInt(json['streak']),
-        profileId: _asInt(json['profileId']),
-        tagIds: (json['tagIds'] as List?)
-                ?.map((e) => _asInt(e))
-                .toList() ??
-            const [],
-        deletedAt: json['deletedAt'] == null
-            ? null
-            : DateTime.tryParse(_asString(json['deletedAt'])),
-      );
+    id: _asInt(json['id']),
+    name: _asString(json['name']),
+    goal: _asString(json['goal']),
+    categoryId: _asInt(json['categoryId']),
+    periodicityId: _asInt(json['periodicityId']),
+    minutesPerDay: _asInt(json['minutesPerDay']),
+    streak: _asInt(json['streak']),
+    profileId: _asInt(json['profileId']),
+    tagIds:
+        (json['tagIds'] as List?)?.map((e) => _asInt(e)).toList() ?? const [],
+    deletedAt: json['deletedAt'] == null
+        ? null
+        : DateTime.tryParse(_asString(json['deletedAt'])),
+  );
 }

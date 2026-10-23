@@ -53,9 +53,11 @@ class PaginationBar extends StatelessWidget {
         const Text('По:'),
         DropdownButton<int>(
           value: size,
-          items: const [10, 25, 50]
-              .map((s) => DropdownMenuItem(value: s, child: Text('$s')))
-              .toList(),
+          items: const [
+            10,
+            25,
+            50,
+          ].map((s) => DropdownMenuItem(value: s, child: Text('$s'))).toList(),
           onChanged: (s) {
             if (s != null) onSize(s);
           },

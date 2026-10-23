@@ -72,9 +72,9 @@ class TagListScreen extends StatelessWidget {
         ),
         TableColumnSpec(
           label: 'Категория',
-          build: (t) => Text(t.categoryId == null
-              ? 'общий'
-              : categoryName(t.categoryId as int)),
+          build: (t) => Text(
+            t.categoryId == null ? 'общий' : categoryName(t.categoryId as int),
+          ),
         ),
         TableColumnSpec(
           label: 'Привычек',
@@ -92,8 +92,10 @@ class TagListScreen extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Удаление невозможно'),
-              content: Text('На тег «${t.name}» ссылаются привычки: '
-                  '$linked шт. Сначала уберите тег у этих привычек.'),
+              content: Text(
+                'На тег «${t.name}» ссылаются привычки: '
+                '$linked шт. Сначала уберите тег у этих привычек.',
+              ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
@@ -112,8 +114,10 @@ class TagListScreen extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: ListTile(
             title: Text(t.name + (t.isDeleted ? ' (удалён)' : '')),
-            subtitle: Text('${t.color} • '
-                '${t.categoryId == null ? 'общий' : categoryName(t.categoryId as int)}'),
+            subtitle: Text(
+              '${t.color} • '
+              '${t.categoryId == null ? 'общий' : categoryName(t.categoryId as int)}',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

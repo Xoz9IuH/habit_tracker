@@ -99,9 +99,5 @@ class SwitchFieldSpec extends FieldSpec {
 class FieldGroupSpec extends FieldSpec {
   final List<FieldSpec> children;
 
-  const FieldGroupSpec(
-    super.label, {
-    required this.children,
-    super.helpText,
-  });
+  const FieldGroupSpec(super.label, {required this.children, super.helpText});
 }

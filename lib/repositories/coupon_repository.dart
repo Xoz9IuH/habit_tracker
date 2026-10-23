@@ -1,52 +1,39 @@
+import 'package:dio/dio.dart';
+
 import '../models/coupon.dart';
 import '../models/coupon_query.dart';
 import '../models/page_result.dart';
-import 'stored_repository.dart';
+import 'api_repository.dart';
 
-class CouponRepository extends StoredRepository<Coupon> {
-  CouponRepository({
-    required super.store,
-    required super.seed,
-  }) : super(
-          name: 'coupons',
-          idOf: (c) => c.id,
-          fromJson: Coupon.fromJson,
-          toJson: (c) => c.toJson(),
-        );
+class CouponRepository extends ApiRepository<Coupon> {
+  CouponRepository(Dio dio)
+    : super(
+        dio: dio,
+        collection: 'coupons',
+        fromJson: Coupon.fromJson,
+        idOf: (c) => c.id,
+        isDeleted: (c) => c.isDeleted,
+        payload: (c) => {
+          'profileId': c.profileId,
+          'code': c.code,
+          'discountPercent': c.discountPercent,
+          'expiresAt': c.expiresAt.toIso8601String(),
+        },
+      );
 
   @override
-  bool isDeleted(Coupon item) => item.isDeleted;
-
-  @override
-  Future<PageResult<Coupon>> find(dynamic query) async {
+  Future<PageResult<Coupon>> find(dynamic query, {CancelToken? cancelToken}) {
     final q = query as CouponQuery;
-    var rows = allWithDeleted().where((c) => q.includeDeleted || !c.isDeleted).toList();
-
-    if (q.search.trim().isNotEmpty) {
-      final needle = q.search.trim().toLowerCase();
-      rows = rows.where((c) => c.code.toLowerCase().contains(needle)).toList();
-    }
-
-    if (q.profileId != null) {
-      rows = rows.where((c) => c.profileId == q.profileId).toList();
-    }
-    if (q.discountFrom != null) {
-      rows = rows.where((c) => c.discountPercent >= q.discountFrom!).toList();
-    }
-    if (q.discountTo != null) {
-      rows = rows.where((c) => c.discountPercent <= q.discountTo!).toList();
-    }
-
-    rows.sort((a, b) {
-      final result = switch (q.sortField) {
-        'discount' => a.discountPercent.compareTo(b.discountPercent),
-        'expires' => a.expiresAt.compareTo(b.expiresAt),
-        _ => a.code.toLowerCase().compareTo(b.code.toLowerCase()),
-      };
-      return q.sortAscending ? result : -result;
-    });
-
-    return paginate(rows, q.page, q.size);
+    return fetchPage({
+      if (q.search.trim().isNotEmpty) 'search': q.search.trim(),
+      if (q.profileId != null) 'profileId': q.profileId,
+      if (q.discountFrom != null) 'discountFrom': q.discountFrom,
+      if (q.discountTo != null) 'discountTo': q.discountTo,
+      'sort': '${q.sortField},${q.sortAscending ? 'asc' : 'desc'}',
+      'page': q.page,
+      'size': q.size,
+      if (q.includeDeleted) 'includeDeleted': true,
+    }, cancelToken: cancelToken);
   }
 
   Coupon? findByProfile(int profileId) {
@@ -65,35 +52,6 @@ class CouponRepository extends StoredRepository<Coupon> {
     return null;
   }
 
-  Future<void> softDelete(int id, DateTime at) async {
-    final c = await findById(id);
-    if (c == null) throw StateError('Купон $id не найден');
-    await update(c.copyWith(deletedAt: at));
-  }
-
-  Future<Coupon> saveCoupon(Coupon coupon) async {
-    if (coupon.id == 0) {
-      final created = coupon.copyWith(id: takeNextId());
-      final saved = await create(created);
-      return saved;
-    }
-    return update(coupon);
-  }
-
-  Future<void> restore(int id) async {
-    final c = await findById(id);
-    if (c == null) throw StateError('Купон $id не найден');
-    await update(c.copyWith(clearDeletedAt: true));
-  }
-
-  Future<int> deleteMany(List<int> ids, DateTime at) async {
-    var count = 0;
-    for (final id in ids) {
-      final c = await findById(id);
-      if (c == null || c.isDeleted) continue;
-      await update(c.copyWith(deletedAt: at));
-      count++;
-    }
-    return count;
-  }
+  Future<Coupon> saveCoupon(Coupon coupon) =>
+      coupon.id == 0 ? create(coupon) : update(coupon);
 }

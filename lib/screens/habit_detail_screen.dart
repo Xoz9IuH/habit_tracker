@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_exceptions.dart';
+
 import '../data/seed.dart';
 import '../models/habit.dart';
 import '../repositories/category_repository.dart';
@@ -32,13 +34,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   Future<void> _load() async {
-    final habit = await context.read<HabitRepository>().findById(widget.id);
-    if (!mounted) return;
-    setState(() {
-      _habit = habit;
-      _loading = false;
-      if (habit == null) _error = 'Привычка не найдена';
-    });
+    try {
+      final habit = await context.read<HabitRepository>().findById(widget.id);
+      if (!mounted) return;
+      setState(() {
+        _habit = habit;
+        _loading = false;
+        if (habit == null) _error = 'Привычка не найдена';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = errorText(e);
+      });
+    }
   }
 
   Future<bool> _confirm(String title, String text) async {
@@ -79,8 +89,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _errorView()
-              : _card(context, _habit!),
+          ? _errorView()
+          : _card(context, _habit!),
     );
   }
 
@@ -150,14 +160,18 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               _row('Минут в день', '${habit.minutesPerDay}'),
               _row('Серия подряд', '${habit.streak} дн.'),
               _row('Отметок', '${checkInRepo.countByHabit(habit.id)} шт.'),
-              _row('Статус',
-                  habit.isDeleted ? 'Удалена (в корзине)' : 'Активна'),
+              _row(
+                'Статус',
+                habit.isDeleted ? 'Удалена (в корзине)' : 'Активна',
+              ),
               const SizedBox(height: 20),
               if (!habit.isDeleted)
                 FilledButton.icon(
                   onPressed: () async {
-                    if (!await _confirm('Удалить привычку?',
-                        'Привычка уйдёт в корзину, её можно будет вернуть.')) {
+                    if (!await _confirm(
+                      'Удалить привычку?',
+                      'Привычка уйдёт в корзину, её можно будет вернуть.',
+                    )) {
                       return;
                     }
                     await notifier.softDeleteOne(habit.id);
@@ -178,8 +192,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    if (!await _confirm('Удалить навсегда?',
-                        'Привычка будет стёрта из хранилища безвозвратно.')) {
+                    if (!await _confirm(
+                      'Удалить навсегда?',
+                      'Привычка будет стёрта из хранилища безвозвратно.',
+                    )) {
                       return;
                     }
                     await notifier.hardDeleteOne(habit.id);
@@ -204,8 +220,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(child: Text(value)),
         ],

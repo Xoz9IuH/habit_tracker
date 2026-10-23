@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/query_uri.dart';
+import '../core/auth_controller.dart';
+import 'models/query_uri.dart';
+import 'screens/api_log_screen.dart';
 import 'screens/category_detail_screen.dart';
 import 'screens/category_form_screen.dart';
 import 'screens/category_list_screen.dart';
@@ -14,6 +16,7 @@ import 'screens/coupon_list_screen.dart';
 import 'screens/habit_detail_screen.dart';
 import 'screens/habit_form_screen.dart';
 import 'screens/habit_list_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/not_found_screen.dart';
 import 'screens/profile_detail_screen.dart';
 import 'screens/profile_form_screen.dart';
@@ -22,11 +25,28 @@ import 'screens/tag_detail_screen.dart';
 import 'screens/tag_form_screen.dart';
 import 'screens/tag_list_screen.dart';
 
-GoRouter buildAppRouter({String initialLocation = '/habits'}) {
+GoRouter buildAppRouter({
+  String initialLocation = '/habits',
+  AuthController? auth,
+}) {
   return GoRouter(
     initialLocation: initialLocation,
+    refreshListenable: auth,
+    redirect: (context, state) {
+      if (auth == null) return null;
+      final loggedIn = auth.isAuthenticated;
+      final goingToLogin = state.matchedLocation == '/login';
+      if (!loggedIn && !goingToLogin) return '/login';
+      if (loggedIn && goingToLogin) return '/habits';
+      return null;
+    },
     routes: [
       GoRoute(path: '/', redirect: (_, _) => '/habits'),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/api-log',
+        builder: (context, state) => const ApiLogScreen(),
+      ),
       GoRoute(
         path: '/habits',
         builder: (context, state) => HabitListScreen(
@@ -40,9 +60,8 @@ GoRouter buildAppRouter({String initialLocation = '/habits'}) {
       ),
       GoRoute(
         path: '/habits/:id/edit',
-        builder: (context, state) => HabitFormScreen(
-          id: int.tryParse(state.pathParameters['id'] ?? ''),
-        ),
+        builder: (context, state) =>
+            HabitFormScreen(id: int.tryParse(state.pathParameters['id'] ?? '')),
       ),
       GoRoute(
         path: '/habits/:id',
@@ -94,9 +113,8 @@ GoRouter buildAppRouter({String initialLocation = '/habits'}) {
       ),
       GoRoute(
         path: '/tags/:id/edit',
-        builder: (context, state) => TagFormScreen(
-          id: int.tryParse(state.pathParameters['id'] ?? ''),
-        ),
+        builder: (context, state) =>
+            TagFormScreen(id: int.tryParse(state.pathParameters['id'] ?? '')),
       ),
       GoRoute(
         path: '/tags/:id',
@@ -194,5 +212,3 @@ GoRouter buildAppRouter({String initialLocation = '/habits'}) {
         NotFoundScreen(location: state.uri.toString()),
   );
 }
-
-final appRouter = buildAppRouter();

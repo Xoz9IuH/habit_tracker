@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/api_exceptions.dart';
 import 'field_spec.dart';
 
 class FormResult {
@@ -7,11 +8,7 @@ class FormResult {
   final String? errorField;
   final String? errorMessage;
 
-  const FormResult({
-    required this.values,
-    this.errorField,
-    this.errorMessage,
-  });
+  const FormResult({required this.values, this.errorField, this.errorMessage});
 
   bool get hasError => errorMessage != null;
 }
@@ -107,7 +104,13 @@ class EntityFormState extends State<EntityForm> {
     if (!ok) return;
 
     setState(() => _saving = true);
-    final result = await widget.onSubmit(_collect());
+    FormResult result;
+    try {
+      result = await widget.onSubmit(_collect());
+    } catch (e) {
+
+      result = FormResult(values: const {}, errorMessage: errorText(e));
+    }
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -165,7 +168,6 @@ class EntityFormState extends State<EntityForm> {
   Widget _buildField(FieldSpec spec) {
     switch (spec) {
       case FieldGroupSpec():
-
         return Card(
           margin: EdgeInsets.zero,
           child: Padding(
@@ -250,7 +252,8 @@ class EntityFormState extends State<EntityForm> {
               decoration: InputDecoration(
                 labelText: spec.label,
                 border: const OutlineInputBorder(),
-                errorText: field.errorText ??
+                errorText:
+                    field.errorText ??
                     (_errorField == spec.label ? _errorMessage : null),
               ),
               child: Wrap(
@@ -304,7 +307,8 @@ class EntityFormState extends State<EntityForm> {
                 decoration: InputDecoration(
                   labelText: spec.label,
                   border: const OutlineInputBorder(),
-                  errorText: field.errorText ??
+                  errorText:
+                      field.errorText ??
                       (_errorField == spec.label ? _errorMessage : null),
                 ),
                 child: Text(
@@ -346,7 +350,8 @@ class EntityFormState extends State<EntityForm> {
           decoration: InputDecoration(
             labelText: label,
             border: const OutlineInputBorder(),
-            errorText: field.errorText ??
+            errorText:
+                field.errorText ??
                 (_errorField == errorField ? _errorMessage : null),
           ),
           child: DropdownButtonHideUnderline(
@@ -357,7 +362,9 @@ class EntityFormState extends State<EntityForm> {
               items: [
                 for (final item in items)
                   DropdownMenuItem<Object?>(
-                      value: item.value, child: Text(item.text)),
+                    value: item.value,
+                    child: Text(item.text),
+                  ),
               ],
               onChanged: (v) {
                 field.didChange(v);

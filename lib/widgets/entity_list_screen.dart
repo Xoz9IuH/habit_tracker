@@ -5,6 +5,7 @@ import '../state/list_notifier.dart';
 import 'debounced_search_field.dart';
 import 'entity_table.dart';
 import 'pagination_bar.dart';
+import 'user_menu.dart';
 
 class EntityListScreen<T, Q> extends StatefulWidget {
   final String path;
@@ -14,8 +15,12 @@ class EntityListScreen<T, Q> extends StatefulWidget {
   final Map<String, String> Function(Q) queryToParams;
   final ListNotifier<T, Q> notifier;
   final List<TableColumnSpec<T>> Function(Q query) columns;
-  final List<Widget> Function(BuildContext context, Q query, ValueChanged<Q> onQuery)
-      extraFilters;
+  final List<Widget> Function(
+    BuildContext context,
+    Q query,
+    ValueChanged<Q> onQuery,
+  )
+  extraFilters;
   final String searchHint;
   final void Function(T item) onOpen;
   final void Function(T item)? onEdit;
@@ -73,8 +78,7 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     final params = widget.queryToParams(widget.notifier.query);
     final current = GoRouterState.of(context).uri.queryParameters;
     if (!_mapsEqual(params, current)) {
-      context.go(
-          Uri(path: widget.path, queryParameters: params).toString());
+      context.go(Uri(path: widget.path, queryParameters: params).toString());
     }
   }
 
@@ -95,8 +99,10 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Удалить записи?'),
-        content: Text('Выбрано: $count. Записи исчезнут из списка, '
-            'но останутся в «корзине» — их можно вернуть.'),
+        content: Text(
+          'Выбрано: $count. Записи исчезнут из списка, '
+          'но останутся в «корзине» — их можно вернуть.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -110,10 +116,10 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
       ),
     );
     if (ok == true && mounted) {
-      await widget.notifier.deleteSelected();
-      if (mounted) {
+      final deleted = await widget.notifier.deleteSelected();
+      if (mounted && deleted > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Записи перемещены в корзину')),
+          SnackBar(content: Text('В корзину перемещено: $deleted')),
         );
       }
     }
@@ -128,7 +134,7 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: [...widget.appBarActions],
+        actions: [...widget.appBarActions, const UserMenu()],
       ),
       body: Column(
         children: [
@@ -237,20 +243,20 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     return switch (notifier.status) {
       LoadStatus.loading => const Center(child: CircularProgressIndicator()),
       LoadStatus.error => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 8),
-              Text(notifier.error ?? 'Ошибка загрузки'),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: notifier.load,
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 8),
+            Text(notifier.error ?? 'Ошибка загрузки'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: notifier.load,
+              child: const Text('Повторить'),
+            ),
+          ],
         ),
+      ),
       LoadStatus.success || LoadStatus.idle =>
         notifier.result.total == 0
             ? Center(
@@ -264,14 +270,12 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
                 ),
               )
             : wide
-                ? _table(context, notifier)
-                : ListView.builder(
-                    itemCount: notifier.result.items.length,
-                    itemBuilder: (context, i) => widget.cardBuilder(
-                      context,
-                      notifier.result.items[i],
-                    ),
-                  ),
+            ? _table(context, notifier)
+            : ListView.builder(
+                itemCount: notifier.result.items.length,
+                itemBuilder: (context, i) =>
+                    widget.cardBuilder(context, notifier.result.items[i]),
+              ),
     };
   }
 
@@ -336,7 +340,9 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
   Q _withSort(Q query, String field) {
     final dynamic q = query;
     final current = q.sortField as String? ?? '';
-    final ascending = current == field ? !(q.sortAscending as bool? ?? true) : true;
+    final ascending = current == field
+        ? !(q.sortAscending as bool? ?? true)
+        : true;
     final params = widget.queryToParams(query);
     params['sort'] = '$field,${ascending ? 'asc' : 'desc'}';
     return widget.queryFromParams(params);

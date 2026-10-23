@@ -73,8 +73,7 @@ class CheckInListScreen extends StatelessWidget {
         TableColumnSpec(
           label: 'Дата',
           sortField: 'date',
-          build: (c) => Text(
-              '${c.date.day}.${c.date.month}.${c.date.year}'),
+          build: (c) => Text('${c.date.day}.${c.date.month}.${c.date.year}'),
         ),
         TableColumnSpec(
           label: 'Привычка',
@@ -105,11 +104,15 @@ class CheckInListScreen extends StatelessWidget {
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: ListTile(
-            title: Text('${habitName(c.habitId)} — '
-                '${c.date.day}.${c.date.month}.${c.date.year}'),
-            subtitle: Text('${profileName(c.profileId)} • '
-                '${c.minutes} мин • '
-                '${c.completed ? 'выполнено' : 'не выполнено'}'),
+            title: Text(
+              '${habitName(c.habitId)} — '
+              '${c.date.day}.${c.date.month}.${c.date.year}',
+            ),
+            subtitle: Text(
+              '${profileName(c.profileId)} • '
+              '${c.minutes} мин • '
+              '${c.completed ? 'выполнено' : 'не выполнено'}',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

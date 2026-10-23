@@ -1,4 +1,3 @@
-
 library;
 
 String? requiredText(String? value, {String field = 'Поле'}) {
@@ -70,6 +69,8 @@ String? notInFuture(DateTime? value, {String field = 'Дата'}) {
 
 String? notBefore(DateTime? value, DateTime min, {String field = 'Дата'}) {
   if (value == null) return 'Выберите $field';
-  if (value.isBefore(min)) return '$field не может быть раньше ${min.day}.${min.month}.${min.year}';
+  if (value.isBefore(min)) {
+    return '$field не может быть раньше ${min.day}.${min.month}.${min.year}';
+  }
   return null;
 }

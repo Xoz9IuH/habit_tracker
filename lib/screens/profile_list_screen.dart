@@ -86,8 +86,10 @@ class ProfileListScreen extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Удаление невозможно'),
-              content: Text('У профиля «${p.name}» есть скидочный купон '
-                  '«${coupon.code}». Сначала удалите купон.'),
+              content: Text(
+                'У профиля «${p.name}» есть скидочный купон '
+                '«${coupon.code}». Сначала удалите купон.',
+              ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
@@ -103,8 +105,10 @@ class ProfileListScreen extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Удаление невозможно'),
-              content: Text('На профиль «${p.name}» ссылаются привычки: '
-                  '$linked шт. Сначала перенесите их другому профилю.'),
+              content: Text(
+                'На профиль «${p.name}» ссылаются привычки: '
+                '$linked шт. Сначала перенесите их другому профилю.',
+              ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
@@ -123,8 +127,10 @@ class ProfileListScreen extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: ListTile(
             title: Text(p.name + (p.isDeleted ? ' (удалён)' : '')),
-            subtitle: Text('${p.email} • ${p.city} • '
-                'цель ${p.dailyGoalMinutes} мин'),
+            subtitle: Text(
+              '${p.email} • ${p.city} • '
+              'цель ${p.dailyGoalMinutes} мин',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

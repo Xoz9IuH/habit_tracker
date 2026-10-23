@@ -5,9 +5,10 @@ import 'package:provider/provider.dart';
 import '../forms/entity_form.dart';
 import '../forms/field_spec.dart';
 import '../models/tag.dart';
-import '../repositories/category_repository.dart';
 import '../repositories/tag_repository.dart';
+import '../repositories/category_repository.dart';
 import '../state/tag_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class TagFormScreen extends StatefulWidget {
@@ -51,7 +52,8 @@ class _TagFormScreenState extends State<TagFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -97,7 +99,6 @@ class _TagFormScreenState extends State<TagFormScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final repo = context.read<TagRepository>();
     final categoryRepo = context.read<CategoryRepository>();
     final notifier = context.read<TagListNotifier>();
     final t = _tag;
@@ -122,39 +123,36 @@ class _TagFormScreenState extends State<TagFormScreen> {
           DropdownFieldSpec(
             'Цвет',
             initialValue: t?.color ?? tagColors.first,
-            items: [
-              for (final c in tagColors) DropdownOption(c, c),
-            ],
+            items: [for (final c in tagColors) DropdownOption(c, c)],
           ),
           DropdownFieldSpec(
             'Категория',
             initialValue: t?.categoryId,
-            items: [
-              for (final c in categories)
-                DropdownOption(c.id, c.name),
-            ],
+            items: [for (final c in categories) DropdownOption(c.id, c.name)],
             helpText: 'Необязательно: тег может быть общим',
           ),
         ];
       },
       onSubmit: (values) async {
-        final name = (values['Название'] as String).trim();
-        final duplicate = await repo.findByName(name);
-        if (duplicate != null && duplicate.id != widget.id) {
-          return const FormResult(
-            values: {},
-            errorField: 'Название',
-            errorMessage: 'Тег с таким названием уже есть',
+        try {
+          final saved = await notifier.save(
+            Tag(
+              id: widget.id ?? 0,
+              name: (values['Название'] as String).trim(),
+              color: values['Цвет'] as String? ?? tagColors.first,
+              categoryId: values['Категория'] as int?,
+            ),
           );
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/tags/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'name': 'Название',
+            'color': 'Цвет',
+            'categoryId': 'Категория',
+          });
         }
-        final saved = await notifier.save(Tag(
-          id: widget.id ?? 0,
-          name: name,
-          color: values['Цвет'] as String? ?? tagColors.first,
-          categoryId: values['Категория'] as int?,
-        ));        if (!context.mounted) return const FormResult(values: {});
-        context.go('/tags/${saved.id}');
-        return const FormResult(values: {});
       },
     );
   }

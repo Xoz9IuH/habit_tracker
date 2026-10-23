@@ -72,7 +72,9 @@ class HabitListScreen extends StatelessWidget {
           hint: const Text('Периодичность'),
           items: [
             const DropdownMenuItem<int?>(
-                value: null, child: Text('Любая периодичность')),
+              value: null,
+              child: Text('Любая периодичность'),
+            ),
             for (final p in periodicities)
               DropdownMenuItem(value: p.id, child: Text(p.name)),
           ],
@@ -107,8 +109,8 @@ class HabitListScreen extends StatelessWidget {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
-            onFieldSubmitted: (v) => onQuery(
-                query.copyWith(streakFrom: int.tryParse(v.trim()))),
+            onFieldSubmitted: (v) =>
+                onQuery(query.copyWith(streakFrom: int.tryParse(v.trim()))),
           ),
         ),
         FilterChip(
@@ -129,8 +131,7 @@ class HabitListScreen extends StatelessWidget {
         ),
         TableColumnSpec(
           label: 'Теги',
-          build: (h) => Text(
-              h.tagIds.map(tagName).join(', ')),
+          build: (h) => Text(h.tagIds.map(tagName).join(', ')),
         ),
         TableColumnSpec(
           label: 'Профиль',
@@ -164,9 +165,11 @@ class HabitListScreen extends StatelessWidget {
               onChanged: (_) => notifier.toggleSelection(h.id),
             ),
             title: Text(h.name + (h.isDeleted ? ' (удалёна)' : '')),
-            subtitle: Text('${categoryName(h.categoryId)} • '
-                '${h.tagIds.map(tagName).join(', ')} • '
-                'серия ${h.streak} дн. • ${h.minutesPerDay} мин/день'),
+            subtitle: Text(
+              '${categoryName(h.categoryId)} • '
+              '${h.tagIds.map(tagName).join(', ')} • '
+              'серия ${h.streak} дн. • ${h.minutesPerDay} мин/день',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

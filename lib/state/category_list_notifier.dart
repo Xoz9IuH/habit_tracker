@@ -9,47 +9,26 @@ class CategoryListNotifier extends ListNotifier<Category, CategoryQuery> {
   CategoryListNotifier(this._repository) : super(const CategoryQuery());
 
   @override
-  Future<void> load() async {
-    setStatus(LoadStatus.loading);
-    try {
-      setResult(await _repository.find(query));
-    } catch (e) {
-      setStatus(LoadStatus.error, error: 'Не удалось загрузить категории: $e');
-    }
-  }
+  Future<void> load() =>
+      runLoad((token) => _repository.find(query, cancelToken: token));
 
   Future<Category> save(Category category) async {
-    if (category.id == 0) {
-      final created = category.copyWith(id: _repository.takeNextId());
-      final saved = await _repository.create(created);
-      await load();
-      return saved;
-    }
-    final saved = await _repository.update(category);
+    final saved = category.id == 0
+        ? await _repository.create(category)
+        : await _repository.update(category);
     await load();
     return saved;
   }
 
-  Future<void> softDeleteOne(int id) async {
-    await _repository.softDelete(id, DateTime.now());
-    await load();
-  }
+  Future<void> softDeleteOne(int id) =>
+      runAction(() => _repository.softDelete(id, DateTime.now()));
 
-  Future<void> hardDeleteOne(int id) async {
-    await _repository.remove(id);
-    await load();
-  }
+  Future<void> hardDeleteOne(int id) => runAction(() => _repository.remove(id));
 
-  Future<void> restoreOne(int id) async {
-    await _repository.restore(id);
-    await load();
-  }
+  Future<void> restoreOne(int id) => runAction(() => _repository.restore(id));
 
   @override
-  Future<int> deleteSelected() async {
-    final count = await _repository.deleteMany(selected.toList(), DateTime.now());
-    clearSelection();
-    await load();
-    return count;
-  }
+  Future<int> deleteSelected() => runDeleteSelected(
+    () => _repository.deleteMany(selected.toList(), DateTime.now()),
+  );
 }

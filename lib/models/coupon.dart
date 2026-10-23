@@ -1,4 +1,3 @@
-
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -30,8 +29,7 @@ class Coupon {
 
   bool get isDeleted => deletedAt != null;
 
-  bool isActiveAt(DateTime moment) =>
-      !isDeleted && expiresAt.isAfter(moment);
+  bool isActiveAt(DateTime moment) => !isDeleted && expiresAt.isAfter(moment);
 
   Coupon copyWith({
     int? id,
@@ -53,23 +51,24 @@ class Coupon {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'profileId': profileId,
-        'code': code,
-        'discountPercent': discountPercent,
-        'expiresAt': expiresAt.toIso8601String(),
-        'deletedAt': deletedAt?.toIso8601String(),
-      };
+    'id': id,
+    'profileId': profileId,
+    'code': code,
+    'discountPercent': discountPercent,
+    'expiresAt': expiresAt.toIso8601String(),
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
 
   factory Coupon.fromJson(Map<String, dynamic> json) => Coupon(
-        id: _asInt(json['id']),
-        profileId: _asInt(json['profileId']),
-        code: _asString(json['code']),
-        discountPercent: _asInt(json['discountPercent']),
-        expiresAt: DateTime.tryParse(_asString(json['expiresAt'])) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: json['deletedAt'] == null
-            ? null
-            : DateTime.tryParse(_asString(json['deletedAt'])),
-      );
+    id: _asInt(json['id']),
+    profileId: _asInt(json['profileId']),
+    code: _asString(json['code']),
+    discountPercent: _asInt(json['discountPercent']),
+    expiresAt:
+        DateTime.tryParse(_asString(json['expiresAt'])) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    deletedAt: json['deletedAt'] == null
+        ? null
+        : DateTime.tryParse(_asString(json['deletedAt'])),
+  );
 }

@@ -1,4 +1,3 @@
-
 class HabitQuery {
   final String search;
   final int? categoryId;
@@ -45,8 +44,9 @@ class HabitQuery {
     return HabitQuery(
       search: search ?? this.search,
       categoryId: categoryId == _unset ? this.categoryId : categoryId as int?,
-      periodicityId:
-          periodicityId == _unset ? this.periodicityId : periodicityId as int?,
+      periodicityId: periodicityId == _unset
+          ? this.periodicityId
+          : periodicityId as int?,
       profileId: profileId == _unset ? this.profileId : profileId as int?,
       tagId: tagId == _unset ? this.tagId : tagId as int?,
       streakFrom: streakFrom == _unset ? this.streakFrom : streakFrom as int?,

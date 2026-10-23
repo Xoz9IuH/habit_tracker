@@ -9,6 +9,7 @@ import '../repositories/check_in_repository.dart';
 import '../repositories/habit_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/check_in_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class CheckInFormScreen extends StatefulWidget {
@@ -38,8 +39,9 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
       setState(() => _loading = false);
       return;
     }
-    final checkIn =
-        await context.read<CheckInRepository>().findById(widget.id!);
+    final checkIn = await context.read<CheckInRepository>().findById(
+      widget.id!,
+    );
     if (!context.mounted) return;
     setState(() {
       _checkIn = checkIn;
@@ -53,7 +55,8 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -115,18 +118,14 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
           DropdownFieldSpec(
             'Привычка',
             initialValue: c?.habitId,
-            items: [
-              for (final h in habits) DropdownOption(h.id, h.name),
-            ],
+            items: [for (final h in habits) DropdownOption(h.id, h.name)],
             validator: (v) => v == null ? 'Выберите привычку' : null,
             helpText: 'Связь «многие к одному»',
           ),
           DropdownFieldSpec(
             'Профиль',
             initialValue: c?.profileId,
-            items: [
-              for (final p in profiles) DropdownOption(p.id, p.name),
-            ],
+            items: [for (final p in profiles) DropdownOption(p.id, p.name)],
             validator: (v) => v == null ? 'Выберите профиль' : null,
             helpText: 'Связь «многие к одному»',
           ),
@@ -140,10 +139,7 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
             initialValue: c == null ? '' : '${c.minutes}',
             validator: (v) => intRange(v, min: 0, max: 1440, field: 'Минуты'),
           ),
-          SwitchFieldSpec(
-            'Выполнено',
-            initialValue: c?.completed ?? true,
-          ),
+          SwitchFieldSpec('Выполнено', initialValue: c?.completed ?? true),
           TextFieldSpec(
             'Заметка',
             initialValue: c?.note ?? '',
@@ -154,19 +150,31 @@ class _CheckInFormScreenState extends State<CheckInFormScreen> {
         ];
       },
       onSubmit: (values) async {
-        final minutes = int.tryParse((values['Минут'] as String).trim());
-        final saved = await notifier.save(CheckIn(
-          id: widget.id ?? 0,
-          habitId: values['Привычка'] as int,
-          profileId: values['Профиль'] as int,
-          date: values['Дата'] as DateTime,
-          minutes: minutes ?? 0,
-          completed: values['Выполнено'] as bool? ?? false,
-          note: (values['Заметка'] as String).trim(),
-        ));
-        if (!context.mounted) return const FormResult(values: {});
-        context.go('/check-ins/${saved.id}');
-        return const FormResult(values: {});
+        try {
+          final minutes = int.tryParse((values['Минут'] as String).trim());
+          final saved = await notifier.save(
+            CheckIn(
+              id: widget.id ?? 0,
+              habitId: values['Привычка'] as int,
+              profileId: values['Профиль'] as int,
+              date: values['Дата'] as DateTime,
+              minutes: minutes ?? 0,
+              completed: values['Выполнено'] as bool? ?? false,
+              note: (values['Заметка'] as String).trim(),
+            ),
+          );
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/check-ins/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'habitId': 'Привычка',
+            'profileId': 'Профиль',
+            'date': 'Дата',
+            'minutes': 'Минут',
+            'note': 'Заметка',
+          });
+        }
       },
     );
   }

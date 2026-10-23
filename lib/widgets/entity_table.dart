@@ -47,13 +47,11 @@ class EntityTable<T> extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
-
         scrollDirection: Axis.horizontal,
         child: DataTable(
           sortColumnIndex: sortIndex,
           sortAscending: sortAscending,
           columns: [
-
             for (final c in columns)
               DataColumn(
                 label: Text(c.label),
@@ -75,10 +73,12 @@ class EntityTable<T> extends StatelessWidget {
                 cells: [
                   for (final c in columns) DataCell(c.build(item)),
                   if (actions != null)
-                    DataCell(Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: actions!(item),
-                    )),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: actions!(item),
+                      ),
+                    ),
                 ],
               ),
           ],

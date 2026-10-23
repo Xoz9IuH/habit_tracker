@@ -1,4 +1,3 @@
-
 class ProfileQuery {
   final String search;
   final String? city;

@@ -9,6 +9,7 @@ import '../models/profile.dart';
 import '../repositories/coupon_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../state/profile_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class ProfileFormScreen extends StatefulWidget {
@@ -38,8 +39,9 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
       setState(() => _loading = false);
       return;
     }
-    final profile =
-        await context.read<ProfileRepository>().findById(widget.id!);
+    final profile = await context.read<ProfileRepository>().findById(
+      widget.id!,
+    );
     if (!context.mounted) return;
     setState(() {
       _profile = profile;
@@ -53,7 +55,8 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -99,13 +102,10 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final repo = context.read<ProfileRepository>();
     final couponRepo = context.read<CouponRepository>();
     final notifier = context.read<ProfileListNotifier>();
     final p = _profile;
-    final coupon = p?.couponId == null
-        ? null
-        : couponRepo.findByProfile(p!.id);
+    final coupon = p?.couponId == null ? null : couponRepo.findByProfile(p!.id);
 
     return EntityForm(
       key: const ValueKey('profile_form'),
@@ -144,8 +144,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
             children: [
               NumberFieldSpec(
                 'Цель в минутах в день',
-                initialValue:
-                    p == null ? '' : '${p.dailyGoalMinutes}',
+                initialValue: p == null ? '' : '${p.dailyGoalMinutes}',
                 validator: (v) => positiveInt(v, field: 'Цель'),
               ),
               SwitchFieldSpec(
@@ -184,7 +183,8 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
               ),
               DateFieldSpec(
                 'Действует до',
-                initialValue: coupon?.expiresAt ??
+                initialValue:
+                    coupon?.expiresAt ??
                     DateTime.now().add(const Duration(days: 30)),
                 validator: (v) {
                   final date = v;
@@ -202,60 +202,59 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
         ];
       },
       onSubmit: (values) async {
-        final mail = (values['Почта'] as String).trim();
-        final duplicate = await repo.findByEmail(mail, excludeId: widget.id);
-        if (duplicate != null) {
-          return const FormResult(
-            values: {},
-            errorField: 'Почта',
-            errorMessage: 'Почта уже занята другим профилем',
+        try {
+          final goal = int.tryParse(
+            (values['Цель в минутах в день'] as String).trim(),
           );
-        }
-        final goal =
-            int.tryParse((values['Цель в минутах в день'] as String).trim());
+          final code = (values['Промокод'] as String).trim();
 
-        final code = (values['Промокод'] as String).trim();
-        Coupon? savedCoupon = coupon;
-        if (code.isNotEmpty) {
-          final sameCode =
-              couponRepo.findByCode(code, excludeId: coupon?.id);
-          if (sameCode != null) {
-            return const FormResult(
-              values: {},
-              errorField: 'Промокод',
-              errorMessage: 'Такой промокод уже есть',
-            );
-          }
-          final discount =
-              int.tryParse((values['Скидка, %'] as String).trim()) ?? 0;
-          final expires = values['Действует до'] as DateTime? ??
-              DateTime.now().add(const Duration(days: 30));
-          savedCoupon = await couponRepo.saveCoupon(
-            Coupon(
-              id: coupon?.id ?? 0,
-              profileId: widget.id ?? 0,
-              code: code,
-              discountPercent: discount,
-              expiresAt: expires,
+          final saved = await notifier.save(
+            Profile(
+              id: widget.id ?? 0,
+              name: (values['Имя'] as String).trim(),
+              email: (values['Почта'] as String).trim(),
+              city: (values['Город'] as String).trim(),
+              dailyGoalMinutes: goal ?? 0,
+              remindersEnabled:
+                  values['Напоминания включены'] as bool? ?? false,
+              couponId: coupon?.id,
             ),
           );
-        } else if (coupon != null) {
-          await couponRepo.softDelete(coupon.id, DateTime.now());
-          savedCoupon = null;
-        }
 
-        final saved = await notifier.save(Profile(
-          id: widget.id ?? 0,
-          name: (values['Имя'] as String).trim(),
-          email: mail,
-          city: (values['Город'] as String).trim(),
-          dailyGoalMinutes: goal ?? 0,
-          remindersEnabled: values['Напоминания включены'] as bool? ?? false,
-          couponId: savedCoupon?.id,
-        ));
-        if (!context.mounted) return const FormResult(values: {});
-        context.go('/profiles/${saved.id}');
-        return const FormResult(values: {});
+          if (code.isNotEmpty) {
+            final discount =
+                int.tryParse((values['Скидка, %'] as String).trim()) ?? 0;
+            final expires =
+                values['Действует до'] as DateTime? ??
+                DateTime.now().add(const Duration(days: 30));
+            await couponRepo.saveCoupon(
+              Coupon(
+                id: coupon?.id ?? 0,
+                profileId: saved.id,
+                code: code,
+                discountPercent: discount,
+                expiresAt: expires,
+              ),
+            );
+          } else if (coupon != null) {
+            await couponRepo.softDelete(coupon.id, DateTime.now());
+          }
+
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/profiles/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'name': 'Имя',
+            'email': 'Почта',
+            'city': 'Город',
+            'dailyGoalMinutes': 'Цель в минутах в день',
+            'code': 'Промокод',
+            'discountPercent': 'Скидка, %',
+            'expiresAt': 'Действует до',
+            'profileId': 'Промокод',
+          });
+        }
       },
     );
   }

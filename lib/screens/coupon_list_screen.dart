@@ -88,7 +88,9 @@ class CouponListScreen extends StatelessWidget {
         TableColumnSpec(
           label: 'Действует до',
           sortField: 'expires',
-          build: (c) => Text('${c.expiresAt.day}.${c.expiresAt.month}.${c.expiresAt.year}'),
+          build: (c) => Text(
+            '${c.expiresAt.day}.${c.expiresAt.month}.${c.expiresAt.year}',
+          ),
         ),
       ],
       isDeleted: (c) => c.isDeleted,
@@ -102,9 +104,11 @@ class CouponListScreen extends StatelessWidget {
           child: ListTile(
             leading: const Icon(Icons.local_offer),
             title: Text(c.code + (c.isDeleted ? ' (удалён)' : '')),
-            subtitle: Text('${_profileName(context, c.profileId)} • '
-                'скидка ${c.discountPercent}% • до '
-                '${c.expiresAt.day}.${c.expiresAt.month}.${c.expiresAt.year}'),
+            subtitle: Text(
+              '${_profileName(context, c.profileId)} • '
+              'скидка ${c.discountPercent}% • до '
+              '${c.expiresAt.day}.${c.expiresAt.month}.${c.expiresAt.year}',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

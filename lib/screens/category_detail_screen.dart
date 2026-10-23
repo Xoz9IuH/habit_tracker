@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_exceptions.dart';
+
 import '../models/category.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/habit_repository.dart';
@@ -28,14 +30,23 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   }
 
   Future<void> _load() async {
-    final category =
-        await context.read<CategoryRepository>().findById(widget.id);
-    if (!mounted) return;
-    setState(() {
-      _category = category;
-      _loading = false;
-      if (category == null) _error = 'Категория не найдена';
-    });
+    try {
+      final category = await context.read<CategoryRepository>().findById(
+        widget.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _category = category;
+        _loading = false;
+        if (category == null) _error = 'Категория не найдена';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = errorText(e);
+      });
+    }
   }
 
   @override
@@ -55,20 +66,20 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.go('/categories'),
-                        child: const Text('К списку категорий'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.go('/categories'),
+                    child: const Text('К списку категорий'),
                   ),
-                )
-              : _card(context, _category!),
+                ],
+              ),
+            )
+          : _card(context, _category!),
     );
   }
 
@@ -88,26 +99,30 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               _row('Название', category.name),
               _row('Описание', category.description),
               _row('Привычек в категории', '$linked шт.'),
-              _row('Статус',
-                  category.isDeleted ? 'Удалена (в корзине)' : 'Активна'),
+              _row(
+                'Статус',
+                category.isDeleted ? 'Удалена (в корзине)' : 'Активна',
+              ),
               const SizedBox(height: 20),
               if (!category.isDeleted)
                 FilledButton.icon(
                   onPressed: linked > 0
                       ? () => showDialog<void>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Удаление невозможно'),
-                              content: Text('На категорию «${category.name}» '
-                                  'ссылаются привычки: $linked шт.'),
-                              actions: [
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Понятно'),
-                                ),
-                              ],
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Удаление невозможно'),
+                            content: Text(
+                              'На категорию «${category.name}» '
+                              'ссылаются привычки: $linked шт.',
                             ),
-                          )
+                            actions: [
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Понятно'),
+                              ),
+                            ],
+                          ),
+                        )
                       : () async {
                           await notifier.softDeleteOne(category.id);
                           if (context.mounted) context.go('/categories');
@@ -139,8 +154,10 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
         children: [
           SizedBox(
             width: 170,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(child: Text(value)),
         ],

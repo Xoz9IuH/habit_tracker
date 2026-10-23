@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../core/api_exceptions.dart';
+import '../core/app_messenger.dart';
 import '../models/page_result.dart';
 
 enum LoadStatus { idle, loading, success, error }
@@ -10,6 +13,7 @@ abstract class ListNotifier<T, Q> extends ChangeNotifier {
   LoadStatus _status = LoadStatus.idle;
   String? _error;
   final Set<int> _selected = {};
+  CancelToken? _cancelToken;
 
   ListNotifier(this._query);
 
@@ -26,6 +30,54 @@ abstract class ListNotifier<T, Q> extends ChangeNotifier {
     _query = next;
     _selected.clear();
     await load();
+  }
+
+  @protected
+  Future<void> runLoad(
+    Future<PageResult<T>> Function(CancelToken token) fetch,
+  ) async {
+    _cancelToken?.cancel('stale');
+    final token = CancelToken();
+    _cancelToken = token;
+
+    setStatus(LoadStatus.loading);
+    try {
+      final result = await fetch(token);
+      if (token.isCancelled) return;
+      setResult(result);
+    } on RequestCancelledException {
+      return;
+    } catch (e) {
+      if (token.isCancelled) return;
+      setStatus(LoadStatus.error, error: errorText(e));
+    }
+  }
+
+  @protected
+  Future<void> runAction(
+    Future<void> Function() action, {
+    String? successMessage,
+  }) async {
+    try {
+      await action();
+      if (successMessage != null) AppMessenger.show(successMessage);
+      await load();
+    } catch (e) {
+      AppMessenger.showError(e);
+    }
+  }
+
+  @protected
+  Future<int> runDeleteSelected(Future<int> Function() action) async {
+    try {
+      final count = await action();
+      clearSelection();
+      await load();
+      return count;
+    } catch (e) {
+      AppMessenger.showError(e);
+      return 0;
+    }
   }
 
   void toggleSelection(int id) {
@@ -56,5 +108,11 @@ abstract class ListNotifier<T, Q> extends ChangeNotifier {
     _result = result;
     _status = LoadStatus.success;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _cancelToken?.cancel('dispose');
+    super.dispose();
   }
 }

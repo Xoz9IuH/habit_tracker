@@ -6,11 +6,12 @@ import '../data/seed.dart';
 import '../forms/entity_form.dart';
 import '../forms/field_spec.dart';
 import '../models/habit.dart';
-import '../repositories/category_repository.dart';
 import '../repositories/habit_repository.dart';
+import '../repositories/category_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../repositories/tag_repository.dart';
 import '../state/habit_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class HabitFormScreen extends StatefulWidget {
@@ -54,7 +55,8 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -82,7 +84,9 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.isEditing ? 'Изменение привычки' : 'Новая привычка'),
+          title: Text(
+            widget.isEditing ? 'Изменение привычки' : 'Новая привычка',
+          ),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -100,7 +104,6 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final habitRepo = context.read<HabitRepository>();
     final categoryRepo = context.read<CategoryRepository>();
     final tagRepo = context.read<TagRepository>();
     final profileRepo = context.read<ProfileRepository>();
@@ -119,10 +122,12 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
 
         final selectedCategory = values['Категория'] as int?;
         final visibleTags = allTags
-            .where((t) =>
-                t.categoryId == null ||
-                selectedCategory == null ||
-                t.categoryId == selectedCategory)
+            .where(
+              (t) =>
+                  t.categoryId == null ||
+                  selectedCategory == null ||
+                  t.categoryId == selectedCategory,
+            )
             .toList();
 
         return <FieldSpec>[
@@ -145,18 +150,14 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
           DropdownFieldSpec(
             'Категория',
             initialValue: h?.categoryId,
-            items: [
-              for (final c in categories) DropdownOption(c.id, c.name),
-            ],
+            items: [for (final c in categories) DropdownOption(c.id, c.name)],
             validator: (v) => v == null ? 'Выберите категорию' : null,
             helpText: 'Связь «многие к одному»',
           ),
           DropdownFieldSpec(
             'Профиль',
             initialValue: h?.profileId,
-            items: [
-              for (final p in profiles) DropdownOption(p.id, p.name),
-            ],
+            items: [for (final p in profiles) DropdownOption(p.id, p.name)],
             validator: (v) => v == null ? 'Выберите профиль' : null,
             helpText: 'Связь «многие к одному»',
           ),
@@ -171,11 +172,8 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
           MultiSelectFieldSpec(
             'Теги',
             initialValue: h?.tagIds ?? const [],
-            items: [
-              for (final t in visibleTags) DropdownOption(t.id, t.name),
-            ],
-            validator: (v) =>
-                v.isEmpty ? 'Выберите хотя бы один тег' : null,
+            items: [for (final t in visibleTags) DropdownOption(t.id, t.name)],
+            validator: (v) => v.isEmpty ? 'Выберите хотя бы один тег' : null,
             helpText: 'Связь «многие ко многим»',
           ),
           NumberFieldSpec(
@@ -191,31 +189,39 @@ class _HabitFormScreenState extends State<HabitFormScreen> {
         ];
       },
       onSubmit: (values) async {
-        final name = (values['Название'] as String).trim();
-        final duplicate = await habitRepo.findByName(name);
-        if (duplicate != null && duplicate.id != widget.id) {
-          return const FormResult(
-            values: {},
-            errorField: 'Название',
-            errorMessage: 'Привычка с таким названием уже есть',
+        try {
+          final minutes = int.tryParse(
+            (values['Минут в день'] as String).trim(),
           );
+          final streak = int.tryParse((values['Серия дней'] as String).trim());
+          final saved = await notifier.save(
+            Habit(
+              id: widget.id ?? 0,
+              name: (values['Название'] as String).trim(),
+              goal: (values['Цель'] as String).trim(),
+              categoryId: values['Категория'] as int,
+              periodicityId: values['Периодичность'] as int,
+              minutesPerDay: minutes ?? 0,
+              streak: streak ?? 0,
+              profileId: values['Профиль'] as int,
+              tagIds: List<int>.from(values['Теги'] as List<int>),
+            ),
+          );
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/habits/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'name': 'Название',
+            'goal': 'Цель',
+            'categoryId': 'Категория',
+            'periodicityId': 'Периодичность',
+            'profileId': 'Профиль',
+            'tagIds': 'Теги',
+            'minutesPerDay': 'Минут в день',
+            'streak': 'Серия дней',
+          });
         }
-        final minutes = int.tryParse((values['Минут в день'] as String).trim());
-        final streak = int.tryParse((values['Серия дней'] as String).trim());
-        final saved = await notifier.save(Habit(
-          id: widget.id ?? 0,
-          name: name,
-          goal: (values['Цель'] as String).trim(),
-          categoryId: values['Категория'] as int,
-          periodicityId: values['Периодичность'] as int,
-          minutesPerDay: minutes ?? 0,
-          streak: streak ?? 0,
-          profileId: values['Профиль'] as int,
-          tagIds: List<int>.from(values['Теги'] as List<int>),
-        ));
-        if (!context.mounted) return const FormResult(values: {});
-        context.go('/habits/${saved.id}');
-        return const FormResult(values: {});
       },
     );
   }

@@ -1,4 +1,3 @@
-
 import 'category_query.dart';
 import 'check_in_query.dart';
 import 'coupon_query.dart';

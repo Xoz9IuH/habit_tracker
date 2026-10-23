@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'data/seed.dart';
+import 'core/api_client.dart';
+import 'core/app_messenger.dart';
+import 'core/auth_controller.dart';
+import 'core/token_store.dart';
+import 'data/bootstrap.dart';
+import 'repositories/api_repository.dart';
 import 'repositories/category_repository.dart';
 import 'repositories/check_in_repository.dart';
 import 'repositories/coupon_repository.dart';
@@ -17,34 +23,53 @@ import 'state/coupon_list_notifier.dart';
 import 'state/habit_list_notifier.dart';
 import 'state/profile_list_notifier.dart';
 import 'state/tag_list_notifier.dart';
-import 'storage/json_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
   final prefs = await SharedPreferences.getInstance();
-  final store = JsonStore(prefs);
+  final tokens = TokenStore();
 
-  final habitRepo = HabitRepository(store: store, seed: seedHabits);
-  final categoryRepo = CategoryRepository(store: store, seed: seedCategories);
-  final tagRepo = TagRepository(store: store, seed: seedTags);
-  final profileRepo = ProfileRepository(store: store, seed: seedProfiles);
-  final checkInRepo = CheckInRepository(store: store, seed: seedCheckIns);
-  final couponRepo = CouponRepository(store: store, seed: seedCoupons);
+  final authDio = buildDio(tokens: tokens);
+  late final AuthController auth;
+  final dio = buildDio(tokens: tokens, onRefresh: () => auth.refresh());
 
-  final notices = <String>[
-    if (habitRepo.notice != null) habitRepo.notice!,
-    if (categoryRepo.notice != null) categoryRepo.notice!,
-    if (tagRepo.notice != null) tagRepo.notice!,
-    if (profileRepo.notice != null) profileRepo.notice!,
-    if (checkInRepo.notice != null) checkInRepo.notice!,
-    if (couponRepo.notice != null) couponRepo.notice!,
+  final habitRepo = HabitRepository(dio);
+  final categoryRepo = CategoryRepository(dio);
+  final tagRepo = TagRepository(dio);
+  final profileRepo = ProfileRepository(dio);
+  final checkInRepo = CheckInRepository(dio);
+  final couponRepo = CouponRepository(dio);
+
+  final repositories = <ApiRepository<dynamic>>[
+    habitRepo,
+    categoryRepo,
+    tagRepo,
+    profileRepo,
+    checkInRepo,
+    couponRepo,
   ];
+
+  auth = AuthController(
+    authDio,
+    tokens,
+    prefs,
+    warmUp: () => warmUp(repositories),
+  );
+
+  await auth.restore();
+
+  if (auth.isAuthenticated) {
+    await warmUp(repositories);
+  }
+
+  final router = buildAppRouter(auth: auth);
 
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider<AuthController>.value(value: auth),
         Provider<HabitRepository>.value(value: habitRepo),
         Provider<CategoryRepository>.value(value: categoryRepo),
         Provider<TagRepository>.value(value: tagRepo),
@@ -60,8 +85,7 @@ Future<void> main() async {
               CategoryListNotifier(context.read<CategoryRepository>()),
         ),
         ChangeNotifierProvider(
-          create: (context) =>
-              TagListNotifier(context.read<TagRepository>()),
+          create: (context) => TagListNotifier(context.read<TagRepository>()),
         ),
         ChangeNotifierProvider(
           create: (context) =>
@@ -76,34 +100,27 @@ Future<void> main() async {
               CouponListNotifier(context.read<CouponRepository>()),
         ),
       ],
-      child: HabitTrackerApp(notices: notices),
+      child: HabitTrackerApp(router: router),
     ),
   );
 }
 
 class HabitTrackerApp extends StatelessWidget {
-  const HabitTrackerApp({super.key, this.notices = const []});
+  const HabitTrackerApp({super.key, required this.router});
 
-  final List<String> notices;
+  final GoRouter router;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Трекер привычек',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: AppMessenger.key,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      routerConfig: appRouter,
-      builder: (context, child) {
-
-        final messenger = ScaffoldMessenger.of(context);
-        for (final notice in notices) {
-          messenger.showSnackBar(SnackBar(content: Text(notice)));
-        }
-        return child ?? const SizedBox.shrink();
-      },
+      routerConfig: router,
     );
   }
 }

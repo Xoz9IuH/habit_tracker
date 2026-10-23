@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api_exceptions.dart';
+
 import '../models/check_in.dart';
 import '../repositories/check_in_repository.dart';
 import '../repositories/habit_repository.dart';
@@ -29,22 +31,34 @@ class _CheckInDetailScreenState extends State<CheckInDetailScreen> {
   }
 
   Future<void> _load() async {
-    final checkIn = await context.read<CheckInRepository>().findById(widget.id);
-    if (!mounted) return;
-    setState(() {
-      _checkIn = checkIn;
-      _loading = false;
-      if (checkIn == null) _error = 'Отметка не найдена';
-    });
+    try {
+      final checkIn = await context.read<CheckInRepository>().findById(
+        widget.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _checkIn = checkIn;
+        _loading = false;
+        if (checkIn == null) _error = 'Отметка не найдена';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = errorText(e);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_checkIn == null
-            ? 'Загрузка отметки…'
-            : 'Отметка: ${_checkIn!.date.day}.${_checkIn!.date.month}'),
+        title: Text(
+          _checkIn == null
+              ? 'Загрузка отметки…'
+              : 'Отметка: ${_checkIn!.date.day}.${_checkIn!.date.month}',
+        ),
         actions: [
           if (_checkIn != null)
             IconButton(
@@ -57,20 +71,20 @@ class _CheckInDetailScreenState extends State<CheckInDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.go('/check-ins'),
-                        child: const Text('К списку отметок'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.go('/check-ins'),
+                    child: const Text('К списку отметок'),
                   ),
-                )
-              : _card(context, _checkIn!),
+                ],
+              ),
+            )
+          : _card(context, _checkIn!),
     );
   }
 
@@ -103,15 +117,14 @@ class _CheckInDetailScreenState extends State<CheckInDetailScreen> {
             children: [
               _row('Привычка', nameOfHabit(checkIn.habitId)),
               _row('Профиль', nameOfProfile(checkIn.profileId)),
-              _row('Дата',
-                  '${checkIn.date.day}.${checkIn.date.month}.${checkIn.date.year}'),
+              _row(
+                'Дата',
+                '${checkIn.date.day}.${checkIn.date.month}.${checkIn.date.year}',
+              ),
               _row('Минут', '${checkIn.minutes}'),
-              _row('Статус',
-                  checkIn.completed ? 'выполнено' : 'не выполнено'),
-              _row('Заметка',
-                  checkIn.note.isEmpty ? '—' : checkIn.note),
-              _row('Запись',
-                  checkIn.isDeleted ? 'удалена' : 'активна'),
+              _row('Статус', checkIn.completed ? 'выполнено' : 'не выполнено'),
+              _row('Заметка', checkIn.note.isEmpty ? '—' : checkIn.note),
+              _row('Запись', checkIn.isDeleted ? 'удалена' : 'активна'),
               const SizedBox(height: 20),
               if (!checkIn.isDeleted)
                 FilledButton.icon(
@@ -146,8 +159,10 @@ class _CheckInDetailScreenState extends State<CheckInDetailScreen> {
         children: [
           SizedBox(
             width: 150,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(child: Text(value)),
         ],

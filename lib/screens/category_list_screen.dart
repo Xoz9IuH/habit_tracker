@@ -55,9 +55,11 @@ class CategoryListScreen extends StatelessWidget {
         TableColumnSpec(
           label: 'Описание',
           sortField: 'description',
-          build: (c) => Text(c.description.length > 46
-              ? '${c.description.substring(0, 46)}…'
-              : c.description),
+          build: (c) => Text(
+            c.description.length > 46
+                ? '${c.description.substring(0, 46)}…'
+                : c.description,
+          ),
         ),
         TableColumnSpec(
           label: 'Привычек',
@@ -75,9 +77,11 @@ class CategoryListScreen extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Удаление невозможно'),
-              content: Text('На категорию «${c.name}» ссылаются '
-                  'привычки: $linked шт. Сначала перенесите их '
-                  'в другую категорию.'),
+              content: Text(
+                'На категорию «${c.name}» ссылаются '
+                'привычки: $linked шт. Сначала перенесите их '
+                'в другую категорию.',
+              ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
@@ -96,8 +100,11 @@ class CategoryListScreen extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: ListTile(
             title: Text(c.name + (c.isDeleted ? ' (удалёна)' : '')),
-            subtitle: Text(c.description,
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+              c.description,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

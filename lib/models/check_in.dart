@@ -1,4 +1,3 @@
-
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
@@ -58,27 +57,28 @@ class CheckIn {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'habitId': habitId,
-        'profileId': profileId,
-        'date': date.toIso8601String(),
-        'minutes': minutes,
-        'completed': completed,
-        'note': note,
-        'deletedAt': deletedAt?.toIso8601String(),
-      };
+    'id': id,
+    'habitId': habitId,
+    'profileId': profileId,
+    'date': date.toIso8601String(),
+    'minutes': minutes,
+    'completed': completed,
+    'note': note,
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
 
   factory CheckIn.fromJson(Map<String, dynamic> json) => CheckIn(
-        id: _asInt(json['id']),
-        habitId: _asInt(json['habitId']),
-        profileId: _asInt(json['profileId']),
-        date: DateTime.tryParse(_asString(json['date'])) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        minutes: _asInt(json['minutes']),
-        completed: json['completed'] == true,
-        note: _asString(json['note']),
-        deletedAt: json['deletedAt'] == null
-            ? null
-            : DateTime.tryParse(_asString(json['deletedAt'])),
-      );
+    id: _asInt(json['id']),
+    habitId: _asInt(json['habitId']),
+    profileId: _asInt(json['profileId']),
+    date:
+        DateTime.tryParse(_asString(json['date'])) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    minutes: _asInt(json['minutes']),
+    completed: json['completed'] == true,
+    note: _asString(json['note']),
+    deletedAt: json['deletedAt'] == null
+        ? null
+        : DateTime.tryParse(_asString(json['deletedAt'])),
+  );
 }

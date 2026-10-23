@@ -1,4 +1,3 @@
-
 class CategoryQuery {
   final String search;
   final String sortField;

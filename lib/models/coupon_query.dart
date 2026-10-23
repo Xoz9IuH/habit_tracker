@@ -1,4 +1,3 @@
-
 class CouponQuery {
   final String search;
   final int? profileId;
@@ -36,8 +35,9 @@ class CouponQuery {
     return CouponQuery(
       search: search ?? this.search,
       profileId: profileId == _unset ? this.profileId : profileId as int?,
-      discountFrom:
-          discountFrom == _unset ? this.discountFrom : discountFrom as int?,
+      discountFrom: discountFrom == _unset
+          ? this.discountFrom
+          : discountFrom as int?,
       discountTo: discountTo == _unset ? this.discountTo : discountTo as int?,
       sortField: sortField ?? this.sortField,
       sortAscending: sortAscending ?? this.sortAscending,

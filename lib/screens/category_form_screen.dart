@@ -7,6 +7,7 @@ import '../forms/field_spec.dart';
 import '../models/category.dart';
 import '../repositories/category_repository.dart';
 import '../state/category_list_notifier.dart';
+import '../core/form_api_errors.dart';
 import '../validation/validators.dart';
 
 class CategoryFormScreen extends StatefulWidget {
@@ -36,8 +37,9 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       setState(() => _loading = false);
       return;
     }
-    final category =
-        await context.read<CategoryRepository>().findById(widget.id!);
+    final category = await context.read<CategoryRepository>().findById(
+      widget.id!,
+    );
     if (!context.mounted) return;
     setState(() {
       _category = category;
@@ -51,7 +53,8 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Выйти без сохранения?'),
         content: const Text(
-            'Изменения не были сохранены. Если уйти, они потеряются.'),
+          'Изменения не были сохранены. Если уйти, они потеряются.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -79,7 +82,9 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.isEditing ? 'Изменение категории' : 'Новая категория'),
+          title: Text(
+            widget.isEditing ? 'Изменение категории' : 'Новая категория',
+          ),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -97,7 +102,6 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final repo = context.read<CategoryRepository>();
     final notifier = context.read<CategoryListNotifier>();
     final c = _category;
 
@@ -125,23 +129,23 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
         ),
       ],
       onSubmit: (values) async {
-        final name = (values['Название'] as String).trim();
-        final duplicate = await repo.findByName(name);
-        if (duplicate != null && duplicate.id != widget.id) {
-          return const FormResult(
-            values: {},
-            errorField: 'Название',
-            errorMessage: 'Категория с таким названием уже есть',
+        try {
+          final saved = await notifier.save(
+            Category(
+              id: widget.id ?? 0,
+              name: (values['Название'] as String).trim(),
+              description: (values['Описание'] as String).trim(),
+            ),
           );
+          if (!context.mounted) return const FormResult(values: {});
+          context.go('/categories/${saved.id}');
+          return const FormResult(values: {});
+        } catch (e) {
+          return apiFormResult(e, const {
+            'name': 'Название',
+            'description': 'Описание',
+          });
         }
-        final saved = await notifier.save(Category(
-          id: widget.id ?? 0,
-          name: name,
-          description: (values['Описание'] as String).trim(),
-        ));
-        if (!context.mounted) return const FormResult(values: {});
-        context.go('/categories/${saved.id}');
-        return const FormResult(values: {});
       },
     );
   }
