@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -19,7 +19,7 @@ env:
 
 jobs:
   build:
-    name: Сборка
+    name: Сборка и публикация
     runs-on: ubuntu-latest
     steps:
       - name: Получить исходники
@@ -91,11 +91,10 @@ jobs:
             CODE=$(curl -s -o /dev/null -w '%{http_code}' -L "$URL")
             echo "попытка $i: HTTP $CODE"
             if [ "$CODE" = "200" ]; then
-              BODY=$(curl -sL "$URL")
-              echo "$BODY" | grep -q "Трекер привычек" && echo "Страница приложения доступна"
+              curl -sL "$URL" | grep -q "Трекер привычек" && echo "Страница приложения доступна"
               exit 0
             fi
             sleep 15
           done
-          echo "Страница пока недоступна"
+          echo "Страница пока недоступна (шаг не блокирует сборку)"
           exit 0
