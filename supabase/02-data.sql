@@ -1,5 +1,5 @@
-/* Демо-данные «Трекер привычек»: справочники, привычки, отметки, купоны.
-   Выполнять после миграции схемы: Supabase → SQL Editor → вставить и Run. */
+/* Данные «Трекера привычек»: справочники, привычки, отметки, купоны.
+   SQL Editor → вставить целиком → Run. Повторный запуск безопасен. */
 
 insert into public.categories (id, name, description) values
   (1, 'Спорт', 'Зарядка, бег и тренировки'),
@@ -9,8 +9,6 @@ insert into public.categories (id, name, description) values
   (5, 'Продуктивность', 'Планы и ритуалы'),
   (6, 'Быт', 'Домашние дела')
 on conflict (id) do nothing;
-
-select setval('public.categories_id_seq', greatest(6, (select max(id) from public.categories)));
 
 insert into public.tags (id, name, color, category_id) values
   (1, 'утро', 'amber', 1),
@@ -23,15 +21,11 @@ insert into public.tags (id, name, color, category_id) values
   (8, 'творчество', 'pink', 4)
 on conflict (id) do nothing;
 
-select setval('public.tags_id_seq', greatest(8, (select max(id) from public.tags)));
-
 insert into public.profiles (id, name, email, city, daily_goal_minutes, reminders_enabled) values
   (1, 'Олег Бундович', 'oleg@example.com', 'Москва', 120, true),
   (2, 'Мария Петрова', 'maria@example.com', 'Казань', 90, false),
   (3, 'Иван Сидоров', 'ivan@example.com', 'Тула', 60, true)
 on conflict (id) do nothing;
-
-select setval('public.profiles_id_seq', greatest(3, (select max(id) from public.profiles)));
 
 insert into public.habits (id, name, goal, category_id, periodicity_id, minutes_per_day, streak, profile_id) values
   (1, 'Утренняя зарядка', 'Все 7 дней в неделю', 1, 1, 15, 42, 1),
@@ -50,8 +44,6 @@ insert into public.habits (id, name, goal, category_id, periodicity_id, minutes_
   (14, 'Порядок на столе', 'Каждый день', 6, 1, 5, 33, 1),
   (15, 'Полив растений', 'Раз в три дня', 6, 2, 5, 14, 2)
 on conflict (id) do nothing;
-
-select setval('public.habits_id_seq', greatest(15, (select max(id) from public.habits)));
 
 insert into public.habit_tags (habit_id, tag_id) values
   (1, 1), (1, 6), (2, 1), (2, 5), (3, 3), (3, 6), (4, 3), (5, 2), (5, 3),
@@ -74,11 +66,18 @@ insert into public.check_ins (id, habit_id, profile_id, date, minutes, completed
   (12, 11, 1, '2026-10-21', 5, false, '')
 on conflict (id) do nothing;
 
-select setval('public.check_ins_id_seq', greatest(12, (select max(id) from public.check_ins)));
-
 insert into public.coupons (id, profile_id, code, discount_percent, expires_at) values
   (1, 1, 'START-20', 20, '2027-01-31'),
   (2, 2, 'READER-10', 10, '2027-03-31')
 on conflict (id) do nothing;
 
+select setval('public.categories_id_seq', greatest(6, (select max(id) from public.categories)));
+select setval('public.tags_id_seq', greatest(8, (select max(id) from public.tags)));
+select setval('public.profiles_id_seq', greatest(3, (select max(id) from public.profiles)));
+select setval('public.habits_id_seq', greatest(15, (select max(id) from public.habits)));
+select setval('public.check_ins_id_seq', greatest(12, (select max(id) from public.check_ins)));
 select setval('public.coupons_id_seq', greatest(2, (select max(id) from public.coupons)));
+
+select 'привычки' as что, count(*) from public.habits
+union all select 'отметки', count(*) from public.check_ins
+union all select 'категории', count(*) from public.categories;
