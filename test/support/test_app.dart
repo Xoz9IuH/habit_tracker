@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/core/api_client.dart';
 import 'package:habit_tracker/core/auth_controller.dart';
+import 'package:habit_tracker/core/connection_monitor.dart';
 import 'package:habit_tracker/core/token_store.dart';
 import 'package:habit_tracker/main.dart';
 import 'package:habit_tracker/models/app_user.dart';
@@ -96,6 +97,9 @@ Future<Widget> buildTestApp({
       Provider<ProfileRepository>.value(value: profileRepo),
       Provider<CheckInRepository>.value(value: checkInRepo),
       Provider<CouponRepository>.value(value: couponRepo),
+      ChangeNotifierProvider<ConnectionMonitor>(
+        create: (_) => ConnectionMonitor(dio),
+      ),
       ChangeNotifierProvider(create: (_) => HabitListNotifier(habitRepo)),
       ChangeNotifierProvider(create: (_) => CategoryListNotifier(categoryRepo)),
       ChangeNotifierProvider(create: (_) => TagListNotifier(tagRepo)),

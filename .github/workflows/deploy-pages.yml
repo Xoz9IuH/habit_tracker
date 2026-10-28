@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [pr6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Сборка
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@v4
+
+      - name: Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Зависимости
+        run: flutter pub get
+
+      - name: Анализ кода
+        run: flutter analyze
+
+      - name: Форматирование
+        run: dart format --set-exit-if-changed lib test
+
+      - name: Тесты
+        run: flutter test --reporter expanded
+
+      - name: Сборка web
+        run: |
+          flutter build web --release \
+            --base-href /habit_tracker/ \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://habit-tracker-api.onrender.com/api' }}
+          cp build/web/index.html build/web/404.html
+          cp build/web/index.html build/web/login.html
+          cp build/web/index.html build/web/habits.html
+
+      - name: Загрузить артефакт
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Публикация
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

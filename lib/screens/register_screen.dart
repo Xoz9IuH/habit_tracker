@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/api_exceptions.dart';
 import '../core/auth_controller.dart';
 import '../core/config.dart';
+import '../core/layout.dart';
 
 class PasswordPolicy {
   PasswordPolicy._();
@@ -115,7 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
+            constraints: const BoxConstraints(maxWidth: Layout.formMaxWidth),
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(24),

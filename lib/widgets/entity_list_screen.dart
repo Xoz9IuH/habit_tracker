@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/layout.dart';
 import '../state/list_notifier.dart';
 import 'debounced_search_field.dart';
 import 'entity_table.dart';
+import 'page_layout.dart';
 import 'pagination_bar.dart';
-import 'user_menu.dart';
 
 class EntityListScreen<T, Q> extends StatefulWidget {
   final String path;
@@ -170,28 +171,24 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
   Widget build(BuildContext context) {
     final notifier = widget.notifier;
     final query = notifier.query;
-    final wide = MediaQuery.widthOf(context) >= 600;
+    final compact = Layout.isCompact(context);
+    final wide = Layout.isWide(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [...widget.appBarActions, const UserMenu()],
-      ),
-      body: Column(
-        children: [
-          _filters(context, query),
-          if (notifier.hasSelection) _selectionBar(context, notifier),
-          Expanded(child: _body(context, notifier, wide)),
-          PaginationBar(
-            page: notifier.result.page,
-            totalPages: notifier.result.totalPages,
-            total: notifier.result.total,
-            size: _sizeOf(query),
-            onPage: (p) => _apply(_withPage(query, p)),
-            onSize: (s) => _apply(_withSize(query, s)),
-          ),
-          const SizedBox(height: 8),
-        ],
+    return ListPageLayout(
+      title: widget.title,
+      actions: widget.appBarActions,
+      filters: _filters(context, query),
+      selection: notifier.hasSelection
+          ? _selectionBar(context, notifier, compact)
+          : null,
+      content: _body(context, notifier, wide),
+      pagination: PaginationBar(
+        page: notifier.result.page,
+        totalPages: notifier.result.totalPages,
+        total: notifier.result.total,
+        size: _sizeOf(query),
+        onPage: (p) => _apply(_withPage(query, p)),
+        onSize: (s) => _apply(_withSize(query, s)),
       ),
     );
   }
@@ -217,19 +214,23 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
   }
 
   Widget _filters(BuildContext context, Q query) {
+    final compact = Layout.isCompact(context);
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 8 : 12),
       child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
+        spacing: compact ? 8 : 12,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           SizedBox(
-            width: 280,
-            child: DebouncedSearchField(
-              initialValue: _searchValue(query),
-              hint: widget.searchHint,
-              onChanged: (v) => _apply(_withSearch(query, v)),
+            width: compact ? null : 280,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: DebouncedSearchField(
+                initialValue: _searchValue(query),
+                hint: widget.searchHint,
+                onChanged: (v) => _apply(_withSearch(query, v)),
+              ),
             ),
           ),
           ...widget.extraFilters(context, query, _apply),
@@ -257,24 +258,45 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     return widget.queryFromParams(params);
   }
 
-  Widget _selectionBar(BuildContext context, ListNotifier<T, Q> notifier) {
+  Widget _selectionBar(
+    BuildContext context,
+    ListNotifier<T, Q> notifier,
+    bool compact,
+  ) {
+    final actions = [
+      TextButton(
+        onPressed: notifier.clearSelection,
+        child: Icon(compact ? Icons.clear : Icons.clear_all),
+      ),
+      const SizedBox(width: 8),
+      FilledButton(
+        onPressed: () => _confirmDeleteSelected(notifier.selected.length),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_inTrash ? Icons.delete_forever : Icons.delete),
+            if (!compact) ...[
+              const SizedBox(width: 8),
+              Text(_inTrash ? 'Удалить навсегда' : 'Удалить'),
+            ],
+          ],
+        ),
+      ),
+    ];
+
     return Container(
       color: Theme.of(context).colorScheme.secondaryContainer,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
-          Text('Выбрано: ${notifier.selected.length}'),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: notifier.clearSelection,
-            icon: const Icon(Icons.clear),
-            label: const Text('Снять'),
+          Expanded(
+            child: Text(
+              'Выбрано: ${notifier.selected.length}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          FilledButton.icon(
-            onPressed: () => _confirmDeleteSelected(notifier.selected.length),
-            icon: Icon(_inTrash ? Icons.delete_forever : Icons.delete),
-            label: Text(_inTrash ? 'Удалить навсегда' : 'Удалить'),
-          ),
+          ...actions,
         ],
       ),
     );

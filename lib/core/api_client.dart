@@ -7,7 +7,11 @@ import 'api_log.dart';
 import 'config.dart';
 import 'token_store.dart';
 
-Dio buildDio({required TokenStore tokens, Future<bool> Function()? onRefresh}) {
+Dio buildDio({
+  required TokenStore tokens,
+  Future<bool> Function()? onRefresh,
+  void Function()? onNetworkError,
+}) {
   final dio = Dio(
     BaseOptions(
       baseUrl: apiBaseUrl,
@@ -59,6 +63,14 @@ Dio buildDio({required TokenStore tokens, Future<bool> Function()? onRefresh}) {
       },
       onError: (error, handler) async {
         final options = error.requestOptions;
+        final networkFailure =
+            error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout;
+        if (networkFailure && options.extra['skipOfflineTracking'] != true) {
+          onNetworkError?.call();
+        }
 
         final canRefresh =
             error.response?.statusCode == 401 &&
