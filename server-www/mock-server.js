@@ -5,6 +5,7 @@ const path = require('node:path');
 const api = require('./api-core.js');
 
 const PORT = Number(process.env.PORT || 8080);
+const INTERNAL_API = PORT + 1;
 const SITE_DIR = path.resolve(
   process.env.SITE_DIR || path.join(__dirname, '..', 'build', 'web'),
 );
@@ -61,30 +62,35 @@ function staticFile(pathname) {
   return null;
 }
 
-(async () => {
-  const apiServer = await api.start(PORT + 1);
+function proxyApi(req, res) {
+  const proxy = http.request(
+    {
+      hostname: '127.0.0.1',
+      port: INTERNAL_API,
+      path: req.url,
+      method: req.method,
+      headers: { ...req.headers, host: `localhost:${INTERNAL_API}` },
+    },
+    (upstream) => {
+      res.writeHead(upstream.statusCode || 502, upstream.headers);
+      upstream.pipe(res);
+    },
+  );
+  proxy.on('error', () => {
+    res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('API недоступен');
+  });
+  req.pipe(proxy);
+}
 
-  const site = http.createServer((req, res) => {
+(async () => {
+  await api.start(INTERNAL_API);
+
+  const server = http.createServer((req, res) => {
     const url = (req.url || '/').split('?')[0];
+
     if (url.startsWith('/api')) {
-      const proxy = http.request(
-        {
-          hostname: '127.0.0.1',
-          port: PORT + 1,
-          path: req.url,
-          method: req.method,
-          headers: { ...req.headers, host: `localhost:${PORT + 1}` },
-        },
-        (upstream) => {
-          res.writeHead(upstream.statusCode || 502, upstream.headers);
-          upstream.pipe(res);
-        },
-      );
-      proxy.on('error', () => {
-        res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('API недоступен');
-      });
-      req.pipe(proxy);
+      proxyApi(req, res);
       return;
     }
 
@@ -100,6 +106,7 @@ function staticFile(pathname) {
       res.end('Не найдено: ' + url);
       return;
     }
+
     res.writeHead(200, {
       'Content-Type': file.type,
       'Content-Length': file.body.length,
@@ -108,7 +115,7 @@ function staticFile(pathname) {
     res.end(req.method === 'HEAD' ? undefined : file.body);
   });
 
-  site.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Страница: http://localhost:${PORT}/`);
     console.log(`API: http://localhost:${PORT}/api (${api.storage()})`);
     console.log(HAS_SITE ? `Клиент: ${SITE_DIR}` : 'Клиент не найден');
