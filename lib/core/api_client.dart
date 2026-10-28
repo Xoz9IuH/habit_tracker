@@ -14,7 +14,7 @@ Dio buildDio({
 }) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: apiBaseUrl,
+      baseUrl: resolvedApiBase,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       headers: {'Content-Type': 'application/json'},

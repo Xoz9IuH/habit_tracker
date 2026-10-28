@@ -130,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Новый пользователь получает роль «читатель». '
-                        'API: $apiBaseUrl',
+                        'API: $resolvedApiBase',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),

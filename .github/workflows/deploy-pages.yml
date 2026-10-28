@@ -40,19 +40,32 @@ jobs:
       - name: Тесты
         run: flutter test --reporter expanded
 
-      - name: Сборка web
+      - name: Сборка JavaScript
         run: |
-          flutter build web --release \
-            --base-href /habit_tracker/ \
-            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://habit-tracker-api.onrender.com/api' }}
+          flutter build web --release --no-wasm-dry-run --base-href /habit_tracker/
+          du -sh build/web
+          cp -r build/web build/web-js
           cp build/web/index.html build/web/404.html
-          cp build/web/index.html build/web/login.html
-          cp build/web/index.html build/web/habits.html
+
+      - name: Сборка WebAssembly
+        run: |
+          flutter build web --release --wasm --base-href /habit_tracker/
+          du -sh build/web
+          cp build/web/index.html build/web/404.html
+          mkdir -p build/web-wasm
+          cp -r build/web/* build/web-wasm/ 2>/dev/null || true
+
+      - name: Итоговые размеры
+        run: |
+          echo "js: $(du -sh build/web-js | cut -f1)"
+          echo "wasm: $(du -sh build/web-wasm | cut -f1)"
+          echo "main.dart.js: $(du -h build/web-js/main.dart.js | cut -f1)"
 
       - name: Загрузить артефакт
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+          retention-days: 1
 
   deploy:
     name: Публикация
