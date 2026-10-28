@@ -28,6 +28,12 @@ Future<void> pumpTestApp(
   String initialLocation = '/habits',
   FakeApi? api,
   bool warmUp = true,
+  AppUser user = const AppUser(
+    id: 1,
+    username: 'admin',
+    fullName: 'Администратор',
+    role: 'admin',
+  ),
 }) async {
   late Widget app;
   await tester.runAsync(() async {
@@ -35,6 +41,7 @@ Future<void> pumpTestApp(
       initialLocation: initialLocation,
       api: api,
       warmUp: warmUp,
+      user: user,
     );
   });
 
@@ -46,21 +53,18 @@ Future<Widget> buildTestApp({
   String initialLocation = '/habits',
   FakeApi? api,
   bool warmUp = true,
+  AppUser user = const AppUser(
+    id: 1,
+    username: 'admin',
+    fullName: 'Администратор',
+    role: 'admin',
+  ),
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
 
   final tokens = TokenStore()
-    ..set(
-      accessToken: 'test-access',
-      refreshToken: 'test-refresh',
-      user: const AppUser(
-        id: 1,
-        username: 'admin',
-        fullName: 'Администратор',
-        role: 'admin',
-      ),
-    );
+    ..set(accessToken: 'test-access', refreshToken: 'test-refresh', user: user);
 
   final fake = api ?? FakeApi();
   final dio = buildDio(tokens: tokens)

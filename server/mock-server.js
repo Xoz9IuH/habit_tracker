@@ -24,6 +24,7 @@ const PORT = Number(arg('port', 8080));
 const ORIGIN = arg('origin', '*');
 const ACCESS_TTL = Number(arg('ttl', 900));
 const REFRESH_TTL = 60 * 60 * 24 * 7;
+const SESSION_TTL = Number(arg('session', 0));
 const SECRET = 'habit-tracker-training-api-secret';
 
 // ---------------------------------------------------------------- токены
@@ -206,19 +207,24 @@ function seed() {
   }
 
   const users = [
-    ['admin', 'admin123', 'Администратор', 'admin'],
-    ['librarian', 'librarian123', 'Редактор', 'librarian'],
-    ['reader', 'reader123', 'Читатель', 'reader'],
+    ['admin', 'admin123', 'Администратор', 'admin', null],
+    ['librarian', 'librarian123', 'Редактор', 'librarian', null],
+    ['reader', 'reader123', 'Читатель', 'reader', 1],
   ];
-  for (const [username, password, fullName, role] of users) {
+  for (const [username, password, fullName, role, profileId] of users) {
     db.users.push({
       id: db.users.length + 1,
       username,
       fullName,
       role,
+      profileId,
       passwordHash: hashPassword(password),
       deletedAt: null,
     });
+  }
+  for (const profile of db.profiles) {
+    const owner = db.users.find((u) => u.profileId === profile.id);
+    profile.ownerId = owner ? owner.id : null;
   }
 }
 
@@ -303,6 +309,71 @@ function send(res, status, body, extraHeaders = {}) {
 
 function fail(res, status, message) {
   send(res, status, { message });
+}
+
+function deny(res, user, action) {
+  const label = {
+    reader: 'читатель',
+    librarian: 'редактор',
+    admin: 'администратор',
+  }[user?.role] ?? 'эта роль';
+  fail(res, 403, `Роль «${label}» не может выполнить действие: ${action}`);
+}
+
+function canPurge(user) {
+  return user?.role === 'admin';
+}
+
+function isAdmin(req) {
+  return currentUser(req)?.role === 'admin';
+}
+
+function statistics() {
+  const minutes = activeRows('check_ins').reduce(
+    (sum, row) => sum + (Number(row.minutes) || 0),
+    0,
+  );
+  const habits = activeRows('habits');
+  const checkIns = activeRows('check_ins');
+  return {
+    generatedAt: nowIso(),
+    collections: {
+      categories: activeRows('categories').length,
+      tags: activeRows('tags').length,
+      profiles: activeRows('profiles').length,
+      habits: habits.length,
+      check_ins: checkIns.length,
+      coupons: activeRows('coupons').length,
+      users: activeRows('users').length,
+    },
+    totalMinutes: minutes,
+    completed: checkIns.filter((c) => c.completed).length,
+    completionRate: checkIns.length
+      ? Math.round((checkIns.filter((c) => c.completed).length * 100) / checkIns.length)
+      : 0,
+    topHabits: [...habits]
+      .map((habit) => ({
+        habitId: habit.id,
+        name: habit.name,
+        checkIns: checkIns.filter((c) => c.habitId === habit.id).length,
+      }))
+      .sort((a, b) => b.checkIns - a.checkIns || a.name.localeCompare(b.name))
+      .slice(0, 5),
+    perProfile: activeRows('profiles').map((profile) => ({
+      profileId: profile.id,
+      name: profile.name,
+      habits: habits.filter((h) => h.profileId === profile.id).length,
+      checkIns: checkIns.filter((c) => c.profileId === profile.id).length,
+      minutes: checkIns
+        .filter((c) => c.profileId === profile.id)
+        .reduce((sum, c) => sum + (Number(c.minutes) || 0), 0),
+    })),
+    perCategory: activeRows('categories').map((category) => ({
+      categoryId: category.id,
+      name: category.name,
+      habits: habits.filter((h) => h.categoryId === category.id).length,
+    })),
+  };
 }
 
 function validationFail(res, errors) {
@@ -520,6 +591,9 @@ function profileSchema() {
       const coupon = activeRows('coupons').find((item) => item.profileId === row.id);
       return { ...row, coupon: coupon ? couponPayload(coupon) : null };
     },
+    scope(row, user) {
+      return row.ownerId === user.id ? row : null;
+    },
     afterDelete(row) {
       for (const coupon of activeRows('coupons')) {
         if (coupon.profileId === row.id) coupon.deletedAt = nowIso();
@@ -638,6 +712,15 @@ function habitSchema() {
           tagIds,
         },
       };
+    },
+    ownerOf(body, current) {
+      const profileId = int(body?.profileId);
+      if (profileId !== null) return activeRows('profiles').find((p) => p.id === profileId) ?? null;
+      return current ? activeRows('profiles').find((p) => p.id === current.profileId) ?? null : null;
+    },
+    scope(row, user) {
+      const profile = activeRows('profiles').find((p) => p.id === row.profileId);
+      return profile?.ownerId === user.id ? row : null;
     },
     expand(row) {
       return {
@@ -871,13 +954,22 @@ function currentUser(req) {
   if (!header.startsWith('Bearer ')) return null;
   const payload = verify(header.slice(7));
   if (!payload || payload.role === undefined) return null;
-  return { id: payload.sub, username: payload.username, role: payload.role };
+
+  const row = db.users.find((item) => item.id === payload.sub && !item.deletedAt);
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    username: row.username,
+    role: row.role,
+    profileId: row.profileId ?? null,
+  };
 }
 
 function requireUser(req, res) {
   const user = currentUser(req);
   if (!user) {
-    fail(res, 401, 'Требуется авторизация: передайте Bearer-токен');
+    fail(res, 401, 'Требуется авторизация: передайте актуальный Bearer-токен');
     return null;
   }
   return user;
@@ -889,7 +981,17 @@ function requireWrite(req, res) {
   const user = requireUser(req, res);
   if (!user) return null;
   if (!WRITE_ROLES.has(user.role)) {
-    fail(res, 403, 'Роль «читатель» не может изменять данные');
+    deny(res, user, 'изменение данных');
+    return null;
+  }
+  return user;
+}
+
+function requireAdmin(req, res) {
+  const user = requireUser(req, res);
+  if (!user) return null;
+  if (!canPurge(user)) {
+    deny(res, user, 'операция только для администратора');
     return null;
   }
   return user;
@@ -901,6 +1003,7 @@ function publicUser(user) {
     username: user.username,
     fullName: user.fullName,
     role: user.role,
+    profileId: user.profileId ?? null,
   };
 }
 
@@ -923,6 +1026,7 @@ function issueTokens(user) {
     accessToken,
     refreshToken,
     expiresIn: ACCESS_TTL,
+    sessionTimeout: SESSION_TTL || null,
     tokenType: 'Bearer',
     user: publicUser(user),
   };
@@ -991,10 +1095,21 @@ async function handleAuth(req, res, segments) {
   }
 
   if (req.method === 'POST' && action === 'register') {
-    const body = await readBody(req);
+    return registerUser(req, res, false);
+  }
+
+  if (req.method === 'POST' && action === 'register-strict') {
+    return registerUser(req, res, true);
+  }
+
+  return false;
+}
+
+function registerUser(req, res, strict) {
+  return readBody(req).then((body) => {
     const errors = {};
     const username = str(body.username).toLowerCase();
-    const password = str(body.password);
+    const password = String(body.password ?? '');
     const fullName = str(body.fullName) || username;
 
     if (!/^[a-z0-9._-]{3,20}$/.test(username)) {
@@ -1004,11 +1119,22 @@ async function handleAuth(req, res, segments) {
     ) {
       errors.username = 'Логин занят';
     }
-    if (password.length < 6) errors.password = 'Пароль не короче 6 символов';
+
+    if (strict) {
+      if (password.length < 8) {
+        errors.password = 'Пароль не короче 8 символов';
+      } else if (!/[0-9]/.test(password)) {
+        errors.password = 'Добавьте в пароль хотя бы одну цифру';
+      } else if (!/[^A-Za-z0-9]/.test(password)) {
+        errors.password = 'Добавьте специальный символ: ! @ # $ % и т. п.';
+      }
+    } else if (password.length < 6) {
+      errors.password = 'Пароль не короче 6 символов';
+    }
 
     if (Object.keys(errors).length) {
       validationFail(res, errors);
-      return true;
+      return;
     }
 
     const user = {
@@ -1021,47 +1147,132 @@ async function handleAuth(req, res, segments) {
     };
     db.users.push(user);
     send(res, 201, issueTokens(user));
-    return true;
-  }
-
-  return false;
+  });
 }
 
 // ---------------------------------------------------------------- CRUD
 
 async function handleCollection(req, res, segments, query) {
+  if (res.writableEnded) return true;
+
   const collection = segments[0];
   const schema = SCHEMAS[collection];
-  if (!schema) return false;
+  if (!schema && collection !== 'users') {
+    return false;
+  }
 
   const second = segments[1];
   const third = segments[2];
 
-  if (second === 'bulk-delete' && req.method === 'POST') {
-    const user = requireWrite(req, res);
-    if (!user) return true;
-
-    const body = await readBody(req);
-    const ids = Array.isArray(body.ids) ? body.ids.map((id) => int(id, 0)) : [];
-    const hard = body.hard === true;
-
-    if (hard && user.role !== 'admin') {
-      fail(res, 403, 'Безвозвратное удаление доступно только администратору');
+  if (collection === 'users') {
+    if (second === undefined) {
+      if (req.method !== 'GET') {
+        fail(res, 405, 'Метод не поддерживается');
+        return true;
+      }
+      const user = requireUser(req, res);
+      if (!user) return true;
+      if (!canPurge(user)) {
+        deny(res, user, 'просмотр пользователей');
+        return true;
+      }
+      send(res, 200, {
+        items: db.users.map((row) => ({
+          ...publicUser(row),
+          deletedAt: row.deletedAt,
+        })),
+      });
       return true;
     }
 
-    let deleted = 0;
-    for (const id of ids) {
-      const row = findRow(collection, id, true);
-      if (!row) continue;
-      if (hard) {
-        db[collection] = db[collection].filter((item) => item.id !== id);
-      } else {
-        row.deletedAt = nowIso();
-      }
-      if (schema.afterDelete) schema.afterDelete(row);
-      deleted++;
+    const id = int(second);
+    if (id === null) {
+      fail(res, 400, 'Некорректный идентификатор');
+      return true;
     }
+
+    if (third === 'role' && (req.method === 'PUT' || req.method === 'PATCH')) {
+      const user = requireUser(req, res);
+      if (!user) return true;
+      if (!canPurge(user)) {
+        deny(res, user, 'изменение ролей');
+        return true;
+      }
+      const row = db.users.find((item) => item.id === id);
+      if (!row) {
+        fail(res, 404, 'Пользователь не найден');
+        return true;
+      }
+      const body = await readBody(req);
+      const role = str(body.role);
+      if (!['admin', 'librarian', 'reader'].includes(role)) {
+        validationFail(res, { role: 'Допустимые роли: admin, librarian, reader' });
+        return true;
+      }
+      if (row.id === user.id && role !== 'admin') {
+        fail(res, 409, 'Нельзя понизить собственную роль администратора');
+        return true;
+      }
+      row.role = role;
+      db.refreshTokens.clear();
+      send(res, 200, { ...publicUser(row), deletedAt: row.deletedAt });
+      return true;
+    }
+
+    if (req.method === 'DELETE') {
+      const user = requireUser(req, res);
+      if (!user) return true;
+      if (!canPurge(user)) {
+        deny(res, user, 'удаление пользователя');
+        return true;
+      }
+      const row = db.users.find((item) => item.id === id);
+      if (!row) {
+        fail(res, 404, 'Пользователь не найден');
+        return true;
+      }
+      if (row.id === user.id) {
+        fail(res, 409, 'Нельзя удалить самого себя');
+        return true;
+      }
+      row.deletedAt = nowIso();
+      db.refreshTokens.clear();
+      send(res, 204);
+      return true;
+    }
+
+    fail(res, 405, 'Метод не поддерживается');
+    return true;
+  }
+
+  if (second === 'bulk-delete' && req.method === 'POST') {
+    const user = requireUser(req, res);
+    if (!user) return true;
+
+      const body = await readBody(req);
+      let ids = [];
+      if (Array.isArray(body.ids)) {
+        ids = body.ids.map((id) => int(id, 0));
+      }
+      const hard = body.hard === true;
+
+      if (!canPurge(user)) {
+        deny(res, user, 'массовое удаление');
+        return true;
+      }
+
+      let deleted = 0;
+      for (const id of ids) {
+        const row = findRow(collection, id, true);
+        if (!row) continue;
+        if (hard) {
+          db[collection] = db[collection].filter((item) => item.id !== id);
+        } else {
+          row.deletedAt = nowIso();
+        }
+        if (schema.afterDelete) schema.afterDelete(row);
+        deleted++;
+      }
 
     send(res, 200, { deleted });
     return true;
@@ -1069,9 +1280,24 @@ async function handleCollection(req, res, segments, query) {
 
   if (second === undefined) {
     if (req.method === 'GET') {
-      if (!requireUser(req, res)) return true;
+      const user = requireUser(req, res);
+      if (!user) return true;
 
       let rows = listRows(collection, query);
+      if (user.role === 'reader') {
+        const ownProfiles = activeRows('profiles')
+          .filter((p) => p.ownerId === user.id)
+          .map((p) => p.id);
+        if (ownProfiles.length) {
+          if (collection === 'habits') {
+            rows = rows.filter((row) => ownProfiles.includes(row.profileId));
+          } else if (collection === 'check_ins') {
+            rows = rows.filter((row) => ownProfiles.includes(row.profileId));
+          } else if (collection === 'coupons') {
+            rows = rows.filter((row) => ownProfiles.includes(row.profileId));
+          }
+        }
+      }
       rows = applySearch(rows, schema.searchFields, query.get('search'));
       rows = schema.filter(rows, query);
       rows = applySort(rows, query.get('sort'), schema.sortFields);
@@ -1088,7 +1314,8 @@ async function handleCollection(req, res, segments, query) {
     }
 
     if (req.method === 'POST') {
-      if (!requireWrite(req, res)) return true;
+      const user = requireWrite(req, res);
+      if (!user) return true;
 
       const body = await readBody(req);
       if (schema.conflict) {
@@ -1115,7 +1342,9 @@ async function handleCollection(req, res, segments, query) {
       return true;
     }
 
-    return false;
+    if (second !== undefined) {
+      return false;
+    }
   }
 
   const id = int(second);
@@ -1127,6 +1356,10 @@ async function handleCollection(req, res, segments, query) {
   if (third === 'restore' && req.method === 'POST') {
     const user = requireUser(req, res);
     if (!user) return true;
+    if (!canPurge(user)) {
+      deny(res, user, 'восстановление из корзины');
+      return true;
+    }
 
     const row = findRow(collection, id, true);
     if (!row) {
@@ -1146,11 +1379,12 @@ async function handleCollection(req, res, segments, query) {
   }
 
   if (req.method === 'GET') {
-    if (!requireUser(req, res)) return true;
+    const user = requireUser(req, res);
+    if (!user) return true;
 
     const includeDeleted = query.get('includeDeleted') === 'true';
     const row = findRow(collection, id, includeDeleted);
-    if (!row) {
+    if (!row || (schema.scope && !schema.scope(row, user))) {
       fail(res, 404, 'Запись не найдена');
       return true;
     }
@@ -1159,15 +1393,23 @@ async function handleCollection(req, res, segments, query) {
   }
 
   if (req.method === 'PUT' || req.method === 'PATCH') {
-    if (!requireWrite(req, res)) return true;
+    const user = requireWrite(req, res);
+    if (!user) return true;
 
     const row = findRow(collection, id);
-    if (!row) {
+    if (!row || (schema.scope && !schema.scope(row, user))) {
       fail(res, 404, 'Запись не найдена');
       return true;
     }
 
     const body = await readBody(req);
+    if (user.role === 'reader' && schema.ownerOf) {
+      const owner = schema.ownerOf(body, row);
+      if (!owner || owner.ownerId !== user.id) {
+        deny(res, user, 'изменение записи чужого профиля');
+        return true;
+      }
+    }
     const previous = { ...row };
 
     if (schema.conflict) {
@@ -1193,11 +1435,10 @@ async function handleCollection(req, res, segments, query) {
 
   if (req.method === 'DELETE') {
     const hard = query.get('hard') === 'true';
-
-    const user = hard ? requireUser(req, res) : requireWrite(req, res);
+    const user = requireWrite(req, res);
     if (!user) return true;
-    if (hard && user.role !== 'admin') {
-      fail(res, 403, 'Безвозвратное удаление доступно только администратору');
+    if (hard && !canPurge(user)) {
+      deny(res, user, 'безвозвратное удаление');
       return true;
     }
 
@@ -1303,20 +1544,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (segments[0] === 'users') {
+    if (segments[0] === 'stats' && segments.length === 1 && req.method === 'GET') {
       const user = requireUser(req, res);
       if (user) {
-        if (user.role !== 'admin') {
-          fail(res, 403, 'Список пользователей доступен только администратору');
-        } else if (req.method === 'GET') {
-          send(res, 200, {
-            items: db.users.map((item) => ({
-              ...publicUser(item),
-              deletedAt: item.deletedAt,
-            })),
-          });
+        if (!canPurge(user)) {
+          deny(res, user, 'просмотр статистики');
         } else {
-          fail(res, 405, 'Метод не поддерживается');
+          send(res, 200, statistics());
         }
       }
       log(req, res.statusCode, startedAt);
@@ -1324,7 +1558,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const handled = await handleCollection(req, res, segments, url.searchParams);
-    if (handled) {
+    if (handled || res.writableEnded) {
       log(req, res.statusCode, startedAt);
       return;
     }
@@ -1332,8 +1566,10 @@ const server = http.createServer(async (req, res) => {
     fail(res, 404, 'Метод не найден');
     log(req, 404, startedAt);
   } catch (error) {
-    fail(res, 400, error instanceof Error ? error.message : 'Некорректный запрос');
-    log(req, 400, startedAt);
+    if (!res.headersSent) {
+      fail(res, 400, error instanceof Error ? error.message : 'Некорректный запрос');
+    }
+    log(req, res.statusCode, startedAt);
   }
 });
 
@@ -1345,6 +1581,10 @@ function log(req, status, startedAt) {
 server.listen(PORT, () => {
   console.log(`Mock API «Трекер привычек»: http://localhost:${PORT}/api`);
   console.log(`CORS origin: ${ORIGIN}`);
+  console.log(`Срок жизни access-токена: ${ACCESS_TTL} с (--ttl)`);
+  console.log(
+    `Ограничение сессии: ${SESSION_TTL ? SESSION_TTL + ' мин (--session)' : 'нет (--session)'}`,
+  );
   console.log('Учётные записи: admin/admin123, librarian/librarian123, reader/reader123');
   console.log('Сброс данных: POST /api/__reset');
 });

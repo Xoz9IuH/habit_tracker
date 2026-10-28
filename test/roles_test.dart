@@ -1,0 +1,189 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:habit_tracker/core/role.dart';
+import 'package:habit_tracker/models/app_user.dart';
+import 'package:habit_tracker/screens/register_screen.dart';
+import 'package:habit_tracker/services/admin_service.dart';
+
+const _reader = AppUser(
+  id: 3,
+  username: 'reader',
+  fullName: 'Читатель',
+  role: 'reader',
+);
+
+const _librarian = AppUser(
+  id: 2,
+  username: 'librarian',
+  fullName: 'Редактор',
+  role: 'librarian',
+);
+
+const _admin = AppUser(
+  id: 1,
+  username: 'admin',
+  fullName: 'Администратор',
+  role: 'admin',
+);
+
+void main() {
+  group('Роли: AppUser', () {
+    test('читатель читает, но не изменяет и не удаляет навсегда', () {
+      expect(_reader.canRead, isTrue);
+      expect(_reader.canEdit, isFalse);
+      expect(_reader.canPurge, isFalse);
+      expect(_reader.canManageUsers, isFalse);
+    });
+
+    test('редактор меняет данные, но без безвозвратного удаления', () {
+      expect(_librarian.canEdit, isTrue);
+      expect(_librarian.canPurge, isFalse);
+      expect(_librarian.canManageUsers, isFalse);
+    });
+
+    test('администратор может всё', () {
+      expect(_admin.canEdit, isTrue);
+      expect(_admin.canPurge, isTrue);
+      expect(_admin.canManageUsers, isTrue);
+    });
+
+    test('роль берётся из ответа сервера', () {
+      final user = AppUser.fromJson(const {
+        'id': 7,
+        'username': 'oleg',
+        'fullName': 'Олег',
+        'role': 'librarian',
+      });
+      expect(user.role, 'librarian');
+      expect(user.roleName, 'редактор');
+      expect(user.isAdmin, isFalse);
+    });
+
+    test('неизвестная роль не повышает права', () {
+      final user = AppUser.fromJson(const {'id': 9, 'role': 'superuser'});
+      expect(user.canEdit, isFalse);
+      expect(user.canPurge, isFalse);
+      expect(user.roleName, 'читатель');
+    });
+
+    test('подменённая роль меняет оформление, но не даёт прав на сервере', () {
+      final tampered = AppUser.fromJson(const {
+        'id': 3,
+        'username': 'reader',
+        'fullName': 'Читатель',
+        'role': 'admin',
+      });
+      expect(tampered.canEdit, isTrue);
+      expect(tampered.copyWith(role: 'reader').canEdit, isFalse);
+    });
+  });
+
+  group('Роли: маршруты', () {
+    test('справочники открываются только редактору и выше', () {
+      expect(minimumRoleFor('/categories'), Role.librarian);
+      expect(Role.atLeast('reader', Role.librarian), isFalse);
+      expect(Role.atLeast('librarian', Role.librarian), isTrue);
+      expect(Role.atLeast('admin', Role.librarian), isTrue);
+    });
+
+    test('пользователи и статистика — только администратору', () {
+      expect(minimumRoleFor('/users'), Role.admin);
+      expect(minimumRoleFor('/system'), Role.admin);
+      expect(Role.atLeast('librarian', Role.admin), isFalse);
+      expect(Role.atLeast('admin', Role.admin), isTrue);
+    });
+
+    test('форма создания привычки доступна редактору', () {
+      expect(minimumRoleFor('/habits/new'), Role.librarian);
+      expect(minimumRoleFor('/habits/12'), isNull);
+      expect(minimumRoleFor('/check-ins'), isNull);
+    });
+
+    test('длинное совпадение важнее короткого', () {
+      expect(minimumRoleFor('/categories/5/edit'), Role.librarian);
+      expect(minimumRoleFor('/habits/new'), Role.librarian);
+    });
+
+    test('пять проверок «роль — операция» на одном списке случаев', () {
+      final cases = [
+        ('reader', 'смотреть привычки', true),
+        ('reader', 'удалить навсегда', false),
+        ('librarian', 'создать категорию', true),
+        ('librarian', 'просмотр статистики', false),
+        ('admin', 'управлять пользователями', true),
+      ];
+      final needed = <String, Role>{
+        'смотреть привычки': Role.reader,
+        'удалить навсегда': Role.admin,
+        'создать категорию': Role.librarian,
+        'просмотр статистики': Role.admin,
+        'управлять пользователями': Role.admin,
+      };
+      for (final (role, action, expected) in cases) {
+        expect(
+          Role.atLeast(role, needed[action]!),
+          expected,
+          reason: '$role / $action',
+        );
+      }
+    });
+  });
+
+  group('Пароль при регистрации', () {
+    test('короткий пароль отклоняется', () {
+      expect(PasswordPolicy.error('Ab1!'), contains('8'));
+    });
+
+    test('без цифры отклоняется', () {
+      expect(PasswordPolicy.error('abcdefg!'), contains('цифра'));
+    });
+
+    test('без специального символа отклоняется', () {
+      expect(PasswordPolicy.error('abcdefg1'), contains('специальный'));
+    });
+
+    test('сильный пароль проходит', () {
+      expect(PasswordPolicy.isStrong('Passw0rd!'), isTrue);
+      expect(PasswordPolicy.error('Passw0rd!'), isNull);
+    });
+
+    test('подсказки обновляются по мере ввода', () {
+      final rules = PasswordPolicy.rules('Passw0rd!');
+      expect(rules.every((rule) => rule.done), isTrue);
+      expect(PasswordPolicy.rules('Pass').first.done, isFalse);
+    });
+  });
+
+  group('Статистика', () {
+    test('разбирает ответ сервера', () {
+      final stats = Stats.fromJson(const {
+        'collections': {'habits': 15, 'check_ins': 12, 'users': 3},
+        'totalMinutes': 640,
+        'completed': 10,
+        'completionRate': 83,
+        'perProfile': [
+          {
+            'profileId': 1,
+            'name': 'Олег',
+            'habits': 7,
+            'checkIns': 5,
+            'minutes': 300,
+          },
+        ],
+        'perCategory': [
+          {'categoryId': 1, 'name': 'Спорт', 'habits': 4},
+        ],
+        'topHabits': [
+          {'habitId': 1, 'name': 'Зарядка', 'checkIns': 2},
+        ],
+        'generatedAt': '2026-10-28T12:00:00.000Z',
+      });
+
+      expect(stats.count('habits'), 15);
+      expect(stats.totalMinutes, 640);
+      expect(stats.completionRate, 83);
+      expect(stats.perProfile.single.name, 'Олег');
+      expect(stats.perCategory.single.habits, 4);
+      expect(stats.topHabits.single.checkIns, 2);
+    });
+  });
+}

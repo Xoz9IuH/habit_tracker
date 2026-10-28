@@ -27,10 +27,16 @@ class UserMenu extends StatelessWidget {
           ),
           onSelected: (value) async {
             switch (value) {
+              case 'home':
+                context.go('/');
               case 'api-log':
                 context.push('/api-log');
               case 'normal':
                 ApiDebug.instance.normal();
+              case 'sub-admin':
+                auth.substituteRole('admin');
+              case 'sub-reader':
+                auth.substituteRole('reader');
               case 'slow':
                 ApiDebug.instance.slow();
               case 'fail':
@@ -52,12 +58,40 @@ class UserMenu extends StatelessWidget {
             ),
             const PopupMenuDivider(),
             const PopupMenuItem<String>(
+              value: 'home',
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.home_outlined),
+                title: Text('Главная'),
+              ),
+            ),
+            const PopupMenuItem<String>(
               value: 'api-log',
               child: ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.receipt_long_outlined),
                 title: Text('Журнал API'),
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'sub-admin',
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.bug_report_outlined),
+                title: Text('Подменить роль на «администратор»'),
+                subtitle: Text('демонстрация обхода клиентской проверки'),
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'sub-reader',
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.undo),
+                title: Text('Вернуть роль из сессии'),
               ),
             ),
             PopupMenuItem<String>(

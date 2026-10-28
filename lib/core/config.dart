@@ -3,4 +3,6 @@ const apiBaseUrl = String.fromEnvironment(
   defaultValue: 'http://localhost:8080/api',
 );
 
-const webClientPort = int.fromEnvironment('WEB_PORT', defaultValue: 5555);
+const sessionTimeout = Duration(minutes: 3);
+const sessionWarning = Duration(seconds: 30);
+const sessionCheckDelay = Duration(seconds: 60);

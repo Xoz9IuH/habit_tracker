@@ -7,7 +7,10 @@ import '../core/auth_controller.dart';
 import '../core/config.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? from;
+  final String? reason;
+
+  const LoginScreen({super.key, this.from, this.reason});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,13 +22,35 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController(text: 'admin123');
 
   bool _loading = false;
+  bool _showPassword = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.reason == 'expired') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сессия завершена. Войдите снова.')),
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
     _login.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  String get _target {
+    final from = widget.from;
+    if (from == null || from.isEmpty) return '/habits';
+    if (from.startsWith('/login') || from.startsWith('/register')) {
+      return '/habits';
+    }
+    return from;
   }
 
   Future<void> _submit() async {
@@ -39,12 +64,16 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await context.read<AuthController>().login(_login.text, _password.text);
       if (!mounted) return;
-      context.go('/habits');
+      context.go(_target);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = errorText(e);
+        _error = switch (e) {
+          UnauthorizedException() => 'Неверный логин или пароль',
+          ApiException() => errorText(e),
+          _ => 'Не удалось войти. Попробуйте ещё раз.',
+        };
       });
     }
   }
@@ -60,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final target = _target;
 
     return Scaffold(
       body: Center(
@@ -87,6 +117,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: theme.colorScheme.outline,
                         ),
                       ),
+                      if (target != '/habits') ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'После входа откроется $target',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                      if (widget.reason == 'expired') ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Время сессии истекло — войдите снова.',
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _login,
@@ -101,11 +152,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _password,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Пароль',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Скрыть пароль'
+                                : 'Показать пароль',
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                          ),
                         ),
-                        obscureText: true,
+                        obscureText: !_showPassword,
                         onFieldSubmitted: (_) => _submit(),
                         validator: (v) =>
                             (v ?? '').isEmpty ? 'Введите пароль' : null,
@@ -130,11 +193,20 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                             : const Text('Войти'),
                       ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _loading
+                            ? null
+                            : () => context.go('/register'),
+                        icon: const Icon(Icons.person_add_alt),
+                        label: const Text('Зарегистрироваться'),
+                      ),
                       const SizedBox(height: 16),
                       Text('Быстрый вход:', style: theme.textTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           OutlinedButton(
                             onPressed: () => _useAccount('admin', 'admin123'),

@@ -17,12 +17,14 @@ import 'repositories/habit_repository.dart';
 import 'repositories/profile_repository.dart';
 import 'repositories/tag_repository.dart';
 import 'router.dart';
+import 'services/admin_service.dart';
 import 'state/category_list_notifier.dart';
 import 'state/check_in_list_notifier.dart';
 import 'state/coupon_list_notifier.dart';
 import 'state/habit_list_notifier.dart';
 import 'state/profile_list_notifier.dart';
 import 'state/tag_list_notifier.dart';
+import 'widgets/session_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,9 @@ Future<void> main() async {
   final profileRepo = ProfileRepository(dio);
   final checkInRepo = CheckInRepository(dio);
   final couponRepo = CouponRepository(dio);
+
+  final userService = UserService(dio);
+  final statsService = StatsService(dio);
 
   final repositories = <ApiRepository<dynamic>>[
     habitRepo,
@@ -64,7 +69,8 @@ Future<void> main() async {
     await warmUp(repositories);
   }
 
-  final router = buildAppRouter(auth: auth);
+  late final GoRouter router;
+  router = buildAppRouter(auth: auth);
 
   runApp(
     MultiProvider(
@@ -76,6 +82,8 @@ Future<void> main() async {
         Provider<ProfileRepository>.value(value: profileRepo),
         Provider<CheckInRepository>.value(value: checkInRepo),
         Provider<CouponRepository>.value(value: couponRepo),
+        Provider<UserService>.value(value: userService),
+        Provider<StatsService>.value(value: statsService),
         ChangeNotifierProvider(
           create: (context) =>
               HabitListNotifier(context.read<HabitRepository>()),
@@ -121,6 +129,8 @@ class HabitTrackerApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routerConfig: router,
+      builder: (context, child) =>
+          SessionShell(router: router, child: child ?? const SizedBox.shrink()),
     );
   }
 }

@@ -12,20 +12,24 @@ class AppUser {
   final String username;
   final String fullName;
   final String role;
-  final int? readerId;
+  final int? profileId;
 
   const AppUser({
     required this.id,
     required this.username,
     required this.fullName,
     required this.role,
-    this.readerId,
+    this.profileId,
   });
 
   bool get isAdmin => role == 'admin';
   bool get isLibrarian => role == 'librarian';
-  bool get isReader => role == 'reader';
-  bool get canEdit => role != 'reader';
+  bool get isReader => !isAdmin && !isLibrarian;
+
+  bool get canRead => true;
+  bool get canEdit => isAdmin || isLibrarian;
+  bool get canPurge => isAdmin;
+  bool get canManageUsers => isAdmin;
 
   String get roleName => switch (role) {
     'admin' => 'администратор',
@@ -33,12 +37,26 @@ class AppUser {
     _ => 'читатель',
   };
 
+  static const displayNames = {
+    'admin': 'Администратор',
+    'librarian': 'Редактор',
+    'reader': 'Читатель',
+  };
+
+  AppUser copyWith({String? role}) => AppUser(
+    id: id,
+    username: username,
+    fullName: fullName,
+    role: role ?? this.role,
+    profileId: profileId,
+  );
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'username': username,
     'fullName': fullName,
     'role': role,
-    'readerId': readerId,
+    'profileId': profileId,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
@@ -46,6 +64,23 @@ class AppUser {
     username: _asString(json['username']),
     fullName: _asString(json['fullName']),
     role: _asString(json['role']).isEmpty ? 'reader' : _asString(json['role']),
-    readerId: json['readerId'] == null ? null : _asInt(json['readerId']),
+    profileId: json['profileId'] == null ? null : _asInt(json['profileId']),
   );
+
+  static AppUser sample(String role) => AppUser(
+    id: 0,
+    username: 'demo',
+    fullName: displayNames[role] ?? 'Демо',
+    role: role,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is AppUser && other.id == id && other.role == role;
+
+  @override
+  int get hashCode => Object.hash(id, role);
+
+  @override
+  String toString() => 'AppUser($username, $role)';
 }
