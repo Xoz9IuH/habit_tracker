@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../core/auth_controller.dart';
 
-import '../core/connection_monitor.dart';
 import '../core/layout.dart';
 import '../core/role.dart';
 import 'app_menu_button.dart';
@@ -47,7 +46,6 @@ class ListPageLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
-          const OfflineBadge(),
           ...(compact ? const <Widget>[] : actions),
           if (!wide) const AppMenuButton(),
           const UserMenu(),
@@ -78,7 +76,6 @@ class PageScaffold extends StatelessWidget {
       appBar: AppBar(
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
-          const OfflineBadge(),
           ...actions,
           if (!wide) const AppMenuButton(),
           const UserMenu(),
@@ -145,7 +142,7 @@ class SectionNav extends StatelessWidget {
     );
 
     return SizedBox(
-      width: 96,
+      width: 132,
       child: NavigationRail(
         labelType: NavigationRailLabelType.all,
         selectedIndex: index < 0 ? 0 : index,
@@ -187,23 +184,6 @@ class MobileNav extends StatelessWidget {
         for (final section in sections)
           NavigationDestination(icon: Icon(section.icon), label: section.label),
       ],
-    );
-  }
-}
-
-class OfflineBadge extends StatelessWidget {
-  const OfflineBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final monitor = context.watch<ConnectionMonitor>();
-    if (!monitor.offline) return const SizedBox.shrink();
-    return Tooltip(
-      message: 'Нет связи с сервером. Показаны последние данные.',
-      child: IconButton(
-        onPressed: monitor.checking ? null : monitor.probe,
-        icon: Icon(Icons.cloud_off, color: Theme.of(context).colorScheme.error),
-      ),
     );
   }
 }

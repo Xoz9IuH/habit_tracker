@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'api_debug.dart';
 import 'api_exceptions.dart';
 import 'api_log.dart';
+import 'connection_observer.dart';
 import 'config.dart';
 import 'token_store.dart';
 
@@ -44,6 +45,7 @@ Dio buildDio({
         return handler.next(options);
       },
       onResponse: (response, handler) {
+        ConnectionObserver.instance.markOnline();
         _journal(response.requestOptions, response.statusCode, null);
         response.requestOptions.extra['journaled'] = true;
 

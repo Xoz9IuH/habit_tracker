@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/api_client.dart';
 import 'core/app_messenger.dart';
 import 'core/auth_controller.dart';
-import 'core/connection_monitor.dart';
+import 'core/connection_observer.dart';
 import 'core/token_store.dart';
 import 'data/bootstrap.dart';
 import 'repositories/api_repository.dart';
@@ -25,7 +25,6 @@ import 'state/coupon_list_notifier.dart';
 import 'state/habit_list_notifier.dart';
 import 'state/profile_list_notifier.dart';
 import 'state/tag_list_notifier.dart';
-import 'widgets/offline_banner.dart';
 import 'widgets/page_layout.dart';
 import 'widgets/session_shell.dart';
 
@@ -35,16 +34,14 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final tokens = TokenStore();
-  final connection = ConnectionMonitor(null);
 
   final authDio = buildDio(tokens: tokens);
   late final AuthController auth;
   final dio = buildDio(
     tokens: tokens,
     onRefresh: () => auth.refresh(),
-    onNetworkError: () => connection.markOffline(),
+    onNetworkError: () => ConnectionObserver.instance.markOffline(),
   );
-  connection.attach(dio);
 
   final habitRepo = HabitRepository(dio);
   final categoryRepo = CategoryRepository(dio);
@@ -78,8 +75,7 @@ Future<void> main() async {
     await warmUp(repositories);
   }
 
-  late final GoRouter router;
-  router = buildAppRouter(auth: auth);
+  final router = buildAppRouter(auth: auth);
 
   runApp(
     MultiProvider(
@@ -93,7 +89,6 @@ Future<void> main() async {
         Provider<CouponRepository>.value(value: couponRepo),
         Provider<UserService>.value(value: userService),
         Provider<StatsService>.value(value: statsService),
-        ChangeNotifierProvider<ConnectionMonitor>.value(value: connection),
         ChangeNotifierProvider(
           create: (context) =>
               HabitListNotifier(context.read<HabitRepository>()),
@@ -138,14 +133,17 @@ class HabitTrackerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      routerConfig: router,
-      builder: (context, child) => OfflineBanner(
-        child: SectionScope(
-          child: SessionShell(
-            router: router,
-            child: child ?? const SizedBox.shrink(),
-          ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
         ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
+      routerConfig: router,
+      builder: (context, child) => SectionScope(
+        child: SessionShell(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

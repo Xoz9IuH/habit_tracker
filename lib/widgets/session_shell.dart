@@ -1,18 +1,16 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/auth_controller.dart';
+import '../core/connection_observer.dart';
 import '../core/config.dart';
 
 class SessionShell extends StatefulWidget {
-  final GoRouter router;
   final Widget child;
 
-  const SessionShell({super.key, required this.router, required this.child});
+  const SessionShell({super.key, required this.child});
 
   @override
   State<SessionShell> createState() => _SessionShellState();
@@ -32,19 +30,19 @@ class _SessionShellState extends State<SessionShell> {
     super.didChangeDependencies();
     final auth = context.read<AuthController>();
     if (identical(auth, _auth)) return;
-    _auth?.removeListener(_changed);
-    _auth = auth..addListener(_changed);
-    _changed();
+    _auth?.removeListener(_authChanged);
+    _auth = auth..addListener(_authChanged);
+    _authChanged();
   }
 
   @override
   void dispose() {
-    _auth?.removeListener(_changed);
+    _auth?.removeListener(_authChanged);
     _stop();
     super.dispose();
   }
 
-  void _changed() {
+  void _authChanged() {
     if (_auth?.isAuthenticated == true) {
       _arm();
     } else {
@@ -112,26 +110,78 @@ class _SessionShellState extends State<SessionShell> {
     _stop();
     ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
     await auth.logout();
-    if (!mounted) return;
-    widget.router.go('/login?reason=$reason');
     _signingOut = false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onHover: (_) => _activity(),
-      child: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => _activity(),
-        onPointerMove: (_) => _activity(),
-        onPointerSignal: (_) => _activity(),
-        child: widget.child,
-      ),
+    final auth = context.watch<AuthController>();
+
+    return ValueListenableBuilder<ConnectionStatus>(
+      valueListenable: ConnectionObserver.instance,
+      builder: (context, connection, child) {
+        final offline = connection == ConnectionStatus.offline;
+        return Column(
+          children: [
+            if (offline && auth.isAuthenticated)
+              Material(
+                color: Theme.of(context).colorScheme.error,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.cloud_off,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onError,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Нет связи с сервером. Показаны последние данные.',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onError,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final ok = await auth.checkSession();
+                            if (!ok) {
+                              ConnectionObserver.instance.markOffline();
+                            }
+                          },
+                          child: Text(
+                            'Повторить',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onError,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _activity(),
+                onPointerMove: (_) => _activity(),
+                onPointerSignal: (_) => _activity(),
+                child: child!,
+              ),
+            ),
+          ],
+        );
+      },
+      child: widget.child,
     );
   }
-}
-
-void debugSessionExpired() {
-  if (kDebugMode) debugPrint('Сессия завершена');
 }

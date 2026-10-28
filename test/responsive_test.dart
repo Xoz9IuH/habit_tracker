@@ -85,6 +85,15 @@ void main() {
     expect(find.byType(Card), findsWidgets);
   });
 
+  testWidgets('на 360 пикселях в шапке есть меню разделов и профиль', (
+    tester,
+  ) async {
+    await pumpAt(tester, const Size(360, 780), location: '/habits');
+
+    expect(find.byTooltip('Разделы'), findsOneWidget);
+    expect(find.byTooltip('Пользователь и режим API'), findsOneWidget);
+  });
+
   testWidgets('ошибка загрузки показывает кнопку повтора', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;
