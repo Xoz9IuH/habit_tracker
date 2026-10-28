@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -19,14 +19,12 @@ env:
 
 jobs:
   build:
-    name: Сборка и публикация
+    name: Сборка
     runs-on: ubuntu-latest
     steps:
-      - name: Получить исходники
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Flutter SDK
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -35,7 +33,7 @@ jobs:
       - name: Зависимости
         run: flutter pub get
 
-      - name: Анализ кода
+      - name: Анализ
         run: flutter analyze
 
       - name: Форматирование
@@ -51,6 +49,7 @@ jobs:
           mkdir -p build/web-js
           cp -r build/web/* build/web-js/
           cp build/web/index.html build/web/404.html
+          find build/web -name "*.symbols" -delete
 
       - name: Сборка WebAssembly
         run: |
@@ -58,43 +57,26 @@ jobs:
           du -sh build/web
           mkdir -p build/web-wasm
           cp -r build/web/* build/web-wasm/
-          echo "wasm готов"
+          cp build/web/index.html build/web/404.html
 
-      - name: Итоговые размеры
+      - name: Размер сборки
         run: |
           echo "js: $(du -sh build/web-js | cut -f1)"
-          echo "js main.dart.js: $(du -h build/web-js/main.dart.js | cut -f1)"
           echo "wasm: $(du -sh build/web-wasm | cut -f1)"
+          du -h build/web-js/main.dart.js
 
-      - name: Опубликовать на GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
-          publish_branch: gh-pages
-          force_orphan: true
-          commit_message: 'Публикация сборки ${{ github.sha }}'
+          path: build/web
+          retention-days: 1
 
-  pages-check:
-    name: Проверка ответа
+  deploy:
+    name: Публикация
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Подождать публикацию
-        run: sleep 60
-
-      - name: Проверить страницу
-        run: |
-          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo "Проверяем $URL"
-          for i in $(seq 1 20); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' -L "$URL")
-            echo "попытка $i: HTTP $CODE"
-            if [ "$CODE" = "200" ]; then
-              curl -sL "$URL" | grep -q "Трекер привычек" && echo "Страница приложения доступна"
-              exit 0
-            fi
-            sleep 15
-          done
-          echo "Страница пока недоступна (шаг не блокирует сборку)"
-          exit 0
+      - id: deployment
+        uses: actions/deploy-pages@v4
