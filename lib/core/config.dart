@@ -1,9 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: '',
-);
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
 const localApiBase = 'http://localhost:8080/api';
 
