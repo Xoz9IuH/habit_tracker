@@ -94,14 +94,21 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
     widget.notifier.applyQuery(next);
   }
 
+  bool get _inTrash =>
+      widget.queryToParams(widget.notifier.query)['includeDeleted'] == 'true';
+
   Future<void> _confirmDeleteSelected(int count) async {
+    final hard = _inTrash;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Удалить записи?'),
+        title: Text(hard ? 'Удалить навсегда?' : 'Удалить записи?'),
         content: Text(
-          'Выбрано: $count. Записи исчезнут из списка, '
-          'но останутся в «корзине» — их можно вернуть.',
+          hard
+              ? 'Выбрано: $count. Записи будут удалены безвозвратно, '
+                    'восстановить их не получится.'
+              : 'Выбрано: $count. Записи исчезнут из списка, '
+                    'но останутся в «корзине» — их можно вернуть.',
         ),
         actions: [
           TextButton(
@@ -110,18 +117,52 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Удалить'),
+            child: Text(hard ? 'Удалить навсегда' : 'Удалить'),
           ),
         ],
       ),
     );
     if (ok == true && mounted) {
-      final deleted = await widget.notifier.deleteSelected();
+      final deleted = hard
+          ? await widget.notifier.purgeSelected()
+          : await widget.notifier.deleteSelected();
       if (mounted && deleted > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('В корзину перемещено: $deleted')),
+          SnackBar(
+            content: Text(
+              hard
+                  ? 'Удалено навсегда: $deleted'
+                  : 'В корзину перемещено: $deleted',
+            ),
+          ),
         );
       }
+    }
+  }
+
+  Future<void> _confirmPurgeOne(T item) async {
+    final id = (item as dynamic).id as int;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить навсегда?'),
+        content: const Text(
+          'Запись будет удалена безвозвратно, восстановить её не получится.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить навсегда'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await widget.notifier.hardDeleteOne(id);
     }
   }
 
@@ -231,8 +272,8 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
           ),
           FilledButton.icon(
             onPressed: () => _confirmDeleteSelected(notifier.selected.length),
-            icon: const Icon(Icons.delete),
-            label: const Text('Удалить'),
+            icon: Icon(_inTrash ? Icons.delete_forever : Icons.delete),
+            label: Text(_inTrash ? 'Удалить навсегда' : 'Удалить'),
           ),
         ],
       ),
@@ -316,6 +357,12 @@ class _EntityListScreenState<T, Q> extends State<EntityListScreen<T, Q>> {
             tooltip: 'Вернуть',
             icon: const Icon(Icons.restore),
             onPressed: () => widget.onRestore!(item),
+          ),
+        if (widget.isDeleted(item))
+          IconButton(
+            tooltip: 'Удалить навсегда',
+            icon: const Icon(Icons.delete_forever),
+            onPressed: () => _confirmPurgeOne(item),
           ),
       ],
     );

@@ -108,7 +108,6 @@ class EntityFormState extends State<EntityForm> {
     try {
       result = await widget.onSubmit(_collect());
     } catch (e) {
-
       result = FormResult(values: const {}, errorMessage: errorText(e));
     }
     if (!mounted) return;

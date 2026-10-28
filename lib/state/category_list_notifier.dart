@@ -23,6 +23,7 @@ class CategoryListNotifier extends ListNotifier<Category, CategoryQuery> {
   Future<void> softDeleteOne(int id) =>
       runAction(() => _repository.softDelete(id, DateTime.now()));
 
+  @override
   Future<void> hardDeleteOne(int id) => runAction(() => _repository.remove(id));
 
   Future<void> restoreOne(int id) => runAction(() => _repository.restore(id));
@@ -30,5 +31,10 @@ class CategoryListNotifier extends ListNotifier<Category, CategoryQuery> {
   @override
   Future<int> deleteSelected() => runDeleteSelected(
     () => _repository.deleteMany(selected.toList(), DateTime.now()),
+  );
+
+  @override
+  Future<int> purgeSelected() => runDeleteSelected(
+    () => _repository.deleteMany(selected.toList(), DateTime.now(), hard: true),
   );
 }

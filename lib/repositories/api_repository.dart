@@ -91,7 +91,6 @@ abstract class ApiRepository<T> {
 
   Future<T?> findById(int id) async {
     try {
-
       final response = await dio.get<Map<String, dynamic>>(
         '/$collection/$id',
         queryParameters: {'includeDeleted': true},
@@ -168,11 +167,15 @@ abstract class ApiRepository<T> {
     onCacheUpdated();
   }
 
-  Future<int> deleteMany(List<int> ids, DateTime at) async {
+  Future<int> deleteMany(
+    List<int> ids,
+    DateTime at, {
+    bool hard = false,
+  }) async {
     final deleted = await guard(() async {
       final response = await dio.post<Map<String, dynamic>>(
         '/$collection/bulk-delete',
-        data: {'ids': ids},
+        data: {'ids': ids, if (hard) 'hard': true},
       );
       return response.data?['deleted'] as int? ?? 0;
     });

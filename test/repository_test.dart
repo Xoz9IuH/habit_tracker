@@ -207,6 +207,22 @@ void main() {
         expect(deleted, 2);
       },
     );
+
+    test('удаление из корзины отправляется с hard=true', () async {
+      late RequestOptions captured;
+      final dio = _dio((options) async {
+        captured = options;
+        return jsonBody({'deleted': 1});
+      });
+
+      final repo = HabitRepository(dio);
+      final deleted = await repo.deleteMany([7], DateTime.now(), hard: true);
+
+      expect(captured.method, 'POST');
+      expect(captured.path, '/habits/bulk-delete');
+      expect((captured.data as Map)['hard'], isTrue);
+      expect(deleted, 1);
+    });
   });
 
   group('Ошибки API', () {

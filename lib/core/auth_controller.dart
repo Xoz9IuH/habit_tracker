@@ -7,12 +7,7 @@ import 'api_exceptions.dart';
 import 'token_store.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(
-    this._dio,
-    this._tokens,
-    this._prefs, {
-    this.warmUp,
-  });
+  AuthController(this._dio, this._tokens, this._prefs, {this.warmUp});
 
   static const _kAccess = 'auth_access_token';
   static const _kRefresh = 'auth_refresh_token';
@@ -111,9 +106,7 @@ class AuthController extends ChangeNotifier {
           '/auth/logout',
           data: {'refreshToken': refreshToken},
         );
-      } catch (_) {
-
-      }
+      } catch (_) {}
     }
     _tokens.clear();
     await _clearStored();

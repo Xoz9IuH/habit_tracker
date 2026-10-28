@@ -1052,7 +1052,7 @@ async function handleCollection(req, res, segments, query) {
 
     let deleted = 0;
     for (const id of ids) {
-      const row = findRow(collection, id);
+      const row = findRow(collection, id, true);
       if (!row) continue;
       if (hard) {
         db[collection] = db[collection].filter((item) => item.id !== id);

@@ -104,6 +104,10 @@ abstract class ListNotifier<T, Q> extends ChangeNotifier {
 
   Future<int> deleteSelected();
 
+  Future<void> hardDeleteOne(int id);
+
+  Future<int> purgeSelected();
+
   void setResult(PageResult<T> result) {
     _result = result;
     _status = LoadStatus.success;

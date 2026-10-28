@@ -71,7 +71,6 @@ ApiException mapHttpError(int status, dynamic body) {
 }
 
 ApiException mapDioError(DioException error) {
-
   final existing = error.error;
   if (existing is ApiException) return existing;
 
