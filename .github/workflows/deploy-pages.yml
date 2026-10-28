@@ -35,9 +35,6 @@ jobs:
       - name: Зависимости
         run: flutter pub get
 
-      - name: Версия Flutter
-        run: flutter --version
-
       - name: Анализ кода
         run: flutter analyze
 
@@ -69,20 +66,36 @@ jobs:
           echo "js main.dart.js: $(du -h build/web-js/main.dart.js | cut -f1)"
           echo "wasm: $(du -sh build/web-wasm | cut -f1)"
 
-      - name: Загрузить артефакт
-        uses: actions/upload-pages-artifact@v3
+      - name: Опубликовать на GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: build/web
-          retention-days: 1
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'Публикация сборки ${{ github.sha }}'
 
-  deploy:
-    name: Публикация
+  pages-check:
+    name: Проверка ответа
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Подождать публикацию
+        run: sleep 60
+
+      - name: Проверить страницу
+        run: |
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "Проверяем $URL"
+          for i in $(seq 1 20); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' -L "$URL")
+            echo "попытка $i: HTTP $CODE"
+            if [ "$CODE" = "200" ]; then
+              BODY=$(curl -sL "$URL")
+              echo "$BODY" | grep -q "Трекер привычек" && echo "Страница приложения доступна"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Страница пока недоступна"
+          exit 0
