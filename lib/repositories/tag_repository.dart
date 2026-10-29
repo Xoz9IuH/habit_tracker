@@ -19,6 +19,11 @@ class TagRepository extends ApiRepository<Tag> {
           'color': t.color,
           'categoryId': t.categoryId,
         },
+        toRow: (t) => {
+          'name': t.name,
+          'color': t.color,
+          'category_id': t.categoryId,
+        },
       );
 
   @override

@@ -26,6 +26,10 @@ class AppUser {
   bool get isLibrarian => role == 'librarian';
   bool get isReader => !isAdmin && !isLibrarian;
 
+  /// В облачной версии идентификатор — UUID из Supabase, в учебной —
+  /// число из локального сервера, поэтому храним его строкой.
+  String get key => '$id';
+
   bool get canRead => true;
   bool get canEdit => isAdmin || isLibrarian;
   bool get canPurge => isAdmin;

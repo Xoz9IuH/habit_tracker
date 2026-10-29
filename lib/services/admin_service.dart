@@ -3,13 +3,32 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/app_user.dart';
 import '../core/api_exceptions.dart';
+import '../core/supabase_config.dart';
 
 class UserService {
   UserService(this._dio);
 
   final Dio _dio;
 
+  bool get _cloud => SupabaseConfig.isConfigured;
+
   Future<List<AppUser>> list() async {
+    if (_cloud) {
+      final response = await guard(
+        () => _dio.get<List<dynamic>>(
+          '/app_users',
+          queryParameters: {
+            'select': 'id,username,full_name,role,profile_id',
+            'order': 'username.asc',
+          },
+        ),
+      );
+      return (response.data ?? const [])
+          .whereType<Map>()
+          .map((row) => _userFromRow(row.cast<String, dynamic>()))
+          .toList();
+    }
+
     final response = await guard(
       () => _dio.get<Map<String, dynamic>>('/users'),
     );
@@ -21,7 +40,22 @@ class UserService {
         .toList();
   }
 
-  Future<AppUser> setRole(int id, String role) async {
+  Future<AppUser> setRole(String id, String role) async {
+    if (_cloud) {
+      final response = await guard(
+        () => _dio.patch<List<dynamic>>(
+          '/app_users',
+          queryParameters: {'id': 'eq.$id', 'select': '*'},
+          data: {'role': role},
+        ),
+      );
+      final rows = (response.data ?? const []).whereType<Map>().toList();
+      if (rows.isEmpty) {
+        throw const ForbiddenException('Роль изменить не удалось');
+      }
+      return _userFromRow(rows.first.cast<String, dynamic>());
+    }
+
     final response = await guard(
       () => _dio.put<Map<String, dynamic>>(
         '/users/$id/role',
@@ -31,9 +65,26 @@ class UserService {
     return AppUser.fromJson(response.data ?? const {});
   }
 
-  Future<void> remove(int id) async {
+  Future<void> remove(String id) async {
+    if (_cloud) {
+      await guard(
+        () => _dio.delete<List<dynamic>>(
+          '/app_users',
+          queryParameters: {'id': 'eq.$id', 'select': 'id'},
+        ),
+      );
+      return;
+    }
     await guard(() => _dio.delete<void>('/users/$id'));
   }
+
+  AppUser _userFromRow(Map<String, dynamic> row) => AppUser.fromJson({
+    'id': row['id'],
+    'username': row['username'],
+    'fullName': row['full_name'] ?? '',
+    'role': row['role'],
+    'profileId': row['profile_id'],
+  });
 }
 
 class StatsService {
@@ -42,10 +93,121 @@ class StatsService {
   final Dio _dio;
 
   Future<Stats> load() async {
+    if (SupabaseConfig.isConfigured) {
+      return _cloud();
+    }
     final response = await guard(
       () => _dio.get<Map<String, dynamic>>('/stats'),
     );
     return Stats.fromJson(response.data ?? const {});
+  }
+
+  Future<List<Map<String, dynamic>>> _rows(String table) async {
+    final response = await guard(
+      () => _dio.get<List<dynamic>>(
+        '/$table',
+        queryParameters: {'select': '*', 'limit': 2000},
+      ),
+    );
+    return (response.data ?? const [])
+        .whereType<Map>()
+        .map((row) => row.cast<String, dynamic>())
+        .toList();
+  }
+
+  /// Считает те же показатели, что отдавал учебный сервер, но запросами
+  /// к таблицам через PostgREST.
+  Future<Stats> _cloud() async {
+    final habits = await _rows('habits');
+    final checkIns = await _rows('check_ins');
+    final categories = await _rows('categories');
+    final tags = await _rows('tags');
+    final profiles = await _rows('profiles');
+    final coupons = await _rows('coupons');
+    final users = await _rows('app_users');
+
+    final activeCheckIns = checkIns.where((c) => c['deleted_at'] == null);
+    final totalMinutes = activeCheckIns.fold<int>(
+      0,
+      (sum, c) => sum + _int(c['minutes']),
+    );
+    final completed = activeCheckIns
+        .where((c) => c['completed'] == true)
+        .length;
+
+    final perProfile = <ProfileStats>[];
+    for (final profile in profiles.where((p) => p['deleted_at'] == null)) {
+      final id = _int(profile['id']);
+      final mine = activeCheckIns.where((c) => _int(c['profile_id']) == id);
+      perProfile.add(
+        ProfileStats(
+          profileId: id,
+          name: '${profile['name'] ?? ''}',
+          habits: habits
+              .where(
+                (h) => h['deleted_at'] == null && _int(h['profile_id']) == id,
+              )
+              .length,
+          checkIns: mine.length,
+          minutes: mine.fold<int>(0, (sum, c) => sum + _int(c['minutes'])),
+        ),
+      );
+    }
+
+    final perCategory = <CategoryStats>[];
+    for (final category in categories.where((c) => c['deleted_at'] == null)) {
+      final id = _int(category['id']);
+      perCategory.add(
+        CategoryStats(
+          categoryId: id,
+          name: '${category['name'] ?? ''}',
+          habits: habits
+              .where(
+                (h) => h['deleted_at'] == null && _int(h['category_id']) == id,
+              )
+              .length,
+        ),
+      );
+    }
+
+    final topHabits = <HabitStats>[];
+    for (final habit in habits.where((h) => h['deleted_at'] == null)) {
+      final id = _int(habit['id']);
+      final count = activeCheckIns
+          .where((c) => _int(c['habit_id']) == id)
+          .length;
+      if (count == 0) continue;
+      topHabits.add(
+        HabitStats(
+          habitId: id,
+          name: '${habit['name'] ?? ''}',
+          checkIns: count,
+        ),
+      );
+    }
+    topHabits.sort((a, b) => b.checkIns.compareTo(a.checkIns));
+
+    return Stats(
+      collections: {
+        'habits': habits.where((h) => h['deleted_at'] == null).length,
+        'check_ins': activeCheckIns.length,
+        'categories': categories.where((c) => c['deleted_at'] == null).length,
+        'tags': tags.where((t) => t['deleted_at'] == null).length,
+        'profiles': profiles.where((p) => p['deleted_at'] == null).length,
+        'coupons': coupons.where((c) => c['deleted_at'] == null).length,
+        'users': users.where((u) => u['deleted_at'] == null).length,
+      },
+      totalMinutes: totalMinutes,
+      completed: completed,
+      completionRate: habits.where((h) => h['deleted_at'] == null).isEmpty
+          ? 0
+          : ((activeCheckIns.length * 100) ~/
+                habits.where((h) => h['deleted_at'] == null).length),
+      perProfile: perProfile,
+      perCategory: perCategory,
+      topHabits: topHabits.take(10).toList(),
+      generatedAt: DateTime.now(),
+    );
   }
 }
 

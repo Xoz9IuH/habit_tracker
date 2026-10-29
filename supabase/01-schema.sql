@@ -169,6 +169,26 @@ alter table public.check_ins  enable row level security;
 alter table public.coupons    enable row level security;
 alter table public.app_users  enable row level security;
 
+-- политики пересоздаются: повторный запуск скрипта не падает
+drop policy if exists categories_read on public.categories;
+drop policy if exists categories_write on public.categories;
+drop policy if exists tags_read on public.tags;
+drop policy if exists tags_write on public.tags;
+drop policy if exists profiles_read on public.profiles;
+drop policy if exists profiles_write on public.profiles;
+drop policy if exists habits_read on public.habits;
+drop policy if exists habits_write on public.habits;
+drop policy if exists habit_tags_read on public.habit_tags;
+drop policy if exists habit_tags_write on public.habit_tags;
+drop policy if exists check_ins_read on public.check_ins;
+drop policy if exists check_ins_write on public.check_ins;
+drop policy if exists coupons_read on public.coupons;
+drop policy if exists coupons_write on public.coupons;
+drop policy if exists app_users_read_own on public.app_users;
+drop policy if exists app_users_read_admin on public.app_users;
+drop policy if exists app_users_update_admin on public.app_users;
+drop policy if exists app_users_delete_admin on public.app_users;
+
 create policy categories_read on public.categories
   for select to authenticated using (true);
 create policy categories_write on public.categories

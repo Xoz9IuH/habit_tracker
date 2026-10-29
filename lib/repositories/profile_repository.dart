@@ -22,7 +22,17 @@ class ProfileRepository extends ApiRepository<Profile> {
           'remindersEnabled': p.remindersEnabled,
           'couponId': p.couponId,
         },
+        toRow: (p) => {
+          'name': p.name,
+          'email': p.email,
+          'city': p.city,
+          'daily_goal_minutes': p.dailyGoalMinutes,
+          'reminders_enabled': p.remindersEnabled,
+        },
       );
+
+  @override
+  String? get searchColumn => 'name';
 
   @override
   void onCacheUpdated() {

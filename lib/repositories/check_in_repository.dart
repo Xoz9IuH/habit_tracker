@@ -21,7 +21,19 @@ class CheckInRepository extends ApiRepository<CheckIn> {
           'completed': c.completed,
           'note': c.note,
         },
+        toRow: (c) => {
+          'habit_id': c.habitId,
+          'profile_id': c.profileId,
+          'date': c.date.toIso8601String().split('T').first,
+          'minutes': c.minutes,
+          'completed': c.completed,
+          'note': c.note,
+        },
+        foreignKeys: const {'habit': 'habits', 'profile': 'profiles'},
       );
+
+  @override
+  String? get searchColumn => 'note';
 
   @override
   Future<PageResult<CheckIn>> find(dynamic query, {CancelToken? cancelToken}) {

@@ -8,6 +8,8 @@ import 'core/api_client.dart';
 import 'core/app_messenger.dart';
 import 'core/auth_controller.dart';
 import 'core/connection_observer.dart';
+import 'core/supabase_auth_api.dart';
+import 'core/supabase_config.dart';
 import 'core/token_store.dart';
 import 'data/bootstrap.dart';
 import 'repositories/api_repository.dart';
@@ -35,7 +37,10 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final tokens = TokenStore();
 
-  final authDio = buildDio(tokens: tokens);
+  final authDio = buildDio(
+    tokens: tokens,
+    onNetworkError: () => ConnectionObserver.instance.markOffline(),
+  );
   late final AuthController auth;
   final dio = buildDio(
     tokens: tokens,
@@ -67,6 +72,7 @@ Future<void> main() async {
     tokens,
     prefs,
     warmUp: () => warmUp(repositories),
+    supabase: SupabaseConfig.isConfigured ? SupabaseAuthApi(authDio) : null,
   );
 
   await auth.restore();

@@ -15,6 +15,7 @@ class CategoryRepository extends ApiRepository<Category> {
         idOf: (c) => c.id,
         isDeleted: (c) => c.isDeleted,
         payload: (c) => {'name': c.name, 'description': c.description},
+        toRow: (c) => {'name': c.name, 'description': c.description},
       );
 
   @override

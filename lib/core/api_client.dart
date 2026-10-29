@@ -6,6 +6,7 @@ import 'api_exceptions.dart';
 import 'api_log.dart';
 import 'connection_observer.dart';
 import 'config.dart';
+import 'supabase_config.dart';
 import 'token_store.dart';
 
 Dio buildDio({
@@ -15,11 +16,18 @@ Dio buildDio({
 }) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: resolvedApiBase,
+      baseUrl: SupabaseConfig.isConfigured
+          ? SupabaseConfig.rest
+          : resolvedApiBase,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
-      headers: {'Content-Type': 'application/json'},
-
+      headers: {
+        'Content-Type': 'application/json',
+        if (SupabaseConfig.isConfigured) ...{
+          'apikey': SupabaseConfig.anonKey,
+          'Prefer': 'return=representation',
+        },
+      },
       validateStatus: (status) => status != null && status < 500,
     ),
   );
@@ -30,6 +38,24 @@ Dio buildDio({
         final token = tokens.accessToken;
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
+        }
+
+        if (SupabaseConfig.isConfigured) {
+          options.headers['apikey'] = SupabaseConfig.anonKey;
+          options.headers['Authorization'] ??=
+              'Bearer ${SupabaseConfig.anonKey}';
+
+          // /auth/v1/... живёт не в REST-корне, а в корне проекта.
+          final path = options.path;
+          if (path.startsWith('/auth/v1/')) {
+            // Повторная отправка через dio.fetch(options) берёт адрес как
+            // baseUrl + path, поэтому подставляем сразу полный адрес.
+            options.baseUrl = SupabaseConfig.url;
+            if (path.contains('/token')) {
+              options.headers['Authorization'] =
+                  'Bearer ${SupabaseConfig.anonKey}';
+            }
+          }
         }
 
         final debugParams = ApiDebug.instance.queryParameters;
@@ -71,12 +97,21 @@ Dio buildDio({
             error.type == DioExceptionType.receiveTimeout ||
             error.type == DioExceptionType.sendTimeout;
         if (networkFailure && options.extra['skipOfflineTracking'] != true) {
-          onNetworkError?.call();
+          // Запросы к серверу авторизации считаем сбоем сети только если
+          // приложение действительно офлайн: шлюз Supabase иногда отвечает
+          // на CORS-проверку так, что Dio сообщает о сбое соединения.
+          if (!options.path.startsWith('/auth/v1/')) {
+            onNetworkError?.call();
+          }
         }
 
+        final isAuthCall =
+            options.path.contains('/token') ||
+            options.uri.path.contains('/token');
         final canRefresh =
             error.response?.statusCode == 401 &&
             onRefresh != null &&
+            !isAuthCall &&
             options.extra['refreshed'] != true;
         if (canRefresh) {
           options.extra['refreshed'] = true;
@@ -150,7 +185,7 @@ void _journal(RequestOptions options, int? status, String? error) {
 
   if (kDebugMode) {
     debugPrint(
-      '[API] ${entry.method} ${options.path} → ${status ?? 'сбой'} '
+      '[API] ${entry.method} ${options.path} -> ${status ?? 'сбой'} '
       '(${entry.durationMs} мс)',
     );
   }

@@ -19,6 +19,12 @@ class CouponRepository extends ApiRepository<Coupon> {
           'discountPercent': c.discountPercent,
           'expiresAt': c.expiresAt.toIso8601String(),
         },
+        toRow: (c) => {
+          'profile_id': c.profileId,
+          'code': c.code,
+          'discount_percent': c.discountPercent,
+          'expires_at': c.expiresAt.toIso8601String().split('T').first,
+        },
       );
 
   @override

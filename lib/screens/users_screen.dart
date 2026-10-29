@@ -34,7 +34,7 @@ class _UsersScreenState extends State<UsersScreen> {
   Future<void> _changeRole(AppUser user, String role) async {
     setState(() => _busy = true);
     try {
-      await context.read<UserService>().setRole(user.id, role);
+      await context.read<UserService>().setRole(user.key, role);
       if (!mounted) return;
       _reload();
     } catch (error) {
@@ -70,7 +70,7 @@ class _UsersScreenState extends State<UsersScreen> {
     if (ok != true) return;
     setState(() => _busy = true);
     try {
-      await service.remove(user.id);
+      await service.remove(user.key);
       if (!mounted) return;
       _reload();
     } catch (error) {

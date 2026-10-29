@@ -1,0 +1,52 @@
+# Отчёт ПР6 — материалы
+
+Адаптивная вёрстка, релизная сборка и публикация трекера привычек.
+
+## Что лежит в папке
+
+| Путь | Содержимое |
+| --- | --- |
+| `Отчёт ПР6 - адаптив, сборка и публикация.docx` | готовый отчёт по практике (адаптив 360/768/1280/1920, сборка, публикация, тесты) |
+| `screenshots/` | снимки экранов: заставка, вход, списки и главная на четырёх ширинах, офлайн-режим, тёмная тема |
+| `cloud/` | снимки работы с облачной базой Supabase |
+
+## Как запустить
+
+```bash
+# учебный сервер с данными и REST-API
+node server-www/mock-server.js --port 8080
+
+# клиент в браузере
+flutter run -d chrome --web-port=5555 --dart-define=API_BASE_URL=http://localhost:8080/api
+```
+
+## Как собрать релиз
+
+```bash
+flutter build web --release --base-href /habit_tracker/
+```
+
+## Облачный режим (Supabase)
+
+Клиент выбирает источник данных сам:
+
+- заданы `SUPABASE_URL` и `SUPABASE_ANON_KEY` — работает `PostgREST` и `auth/v1`,
+  роли берутся из таблицы `app_users`, права проверяет RLS на сервере;
+- параметры не заданы — работает учебный сервер из `server-www`.
+
+```bash
+flutter build web --release \
+  --dart-define=SUPABASE_URL=https://<проект>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<anon-key>
+```
+
+SQL для создания схемы, данных и пользователей лежит в `supabase/`:
+`01-schema.sql`, `02-data.sql`, `02-users.sql`.
+
+## Проверки
+
+```bash
+flutter analyze
+dart format --set-exit-if-changed lib test
+flutter test
+```

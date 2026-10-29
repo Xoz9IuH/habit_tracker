@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/api_exceptions.dart';
 import '../core/auth_controller.dart';
 import '../core/config.dart';
+import '../core/supabase_config.dart';
 import '../core/layout.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -19,7 +20,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _login = TextEditingController(text: 'admin');
+  late final _login = TextEditingController(
+    text: SupabaseConfig.isConfigured ? 'admin@habit.local' : 'admin',
+  );
   final _password = TextEditingController(text: 'admin123');
 
   bool _loading = false;
@@ -113,7 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Вход в учебное API',
+                        SupabaseConfig.isConfigured
+                            ? 'Вход через Supabase'
+                            : 'Вход в учебное API',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.outline,
                         ),
@@ -142,9 +147,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _login,
-                        decoration: const InputDecoration(
-                          labelText: 'Логин',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: SupabaseConfig.isConfigured
+                              ? 'Почта'
+                              : 'Логин',
+                          border: const OutlineInputBorder(),
                         ),
                         textInputAction: TextInputAction.next,
                         validator: (v) =>
@@ -226,7 +233,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'API: $resolvedApiBase',
+                        SupabaseConfig.isConfigured
+                            ? 'Данные: Supabase'
+                            : 'API: $resolvedApiBase',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),
