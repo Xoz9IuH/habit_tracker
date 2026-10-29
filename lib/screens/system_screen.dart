@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/api_exceptions.dart';
 import '../services/admin_service.dart';
 import '../widgets/app_menu_button.dart';
+import '../widgets/category_pie_chart.dart';
 import '../widgets/user_menu.dart';
 
 class SystemScreen extends StatefulWidget {
@@ -92,6 +93,18 @@ class _SystemScreenState extends State<SystemScreen> {
                   _tile('Минут всего', stats.totalMinutes),
                   _tile('Выполнено, %', stats.completionRate),
                 ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Распределение по категориям',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              CategoryPieChart(
+                values: {
+                  for (final category in stats.perCategory)
+                    category.name: category.habits,
+                },
               ),
               const SizedBox(height: 24),
               Text('Популярные привычки', style: theme.textTheme.titleMedium),

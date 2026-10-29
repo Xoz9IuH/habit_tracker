@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/csv.dart';
+import '../core/reference_cache.dart';
 import '../data/seed.dart';
 import '../models/habit.dart';
 import '../models/habit_query.dart';
@@ -17,6 +19,47 @@ class HabitListScreen extends StatelessWidget {
   const HabitListScreen({super.key, required this.initialQuery});
 
   final HabitQuery initialQuery;
+
+  /// Выгружает текущую страницу списка (с учётом фильтров) в CSV.
+  Future<void> _exportCsv(
+    BuildContext context,
+    HabitListNotifier notifier,
+  ) async {
+    final categories = ReferenceCache.instance;
+    final rows = <List<String>>[
+      [
+        'Название',
+        'Цель',
+        'Категория',
+        'Теги',
+        'Профиль',
+        'Серия, дн.',
+        'Мин/день',
+      ],
+      for (final habit in notifier.result.items)
+        [
+          habit.name,
+          habit.goal,
+          categories.category(habit.categoryId),
+          habit.tagIds.map(categories.tag).join(', '),
+          categories.profile(habit.profileId),
+          '${habit.streak}',
+          '${habit.minutesPerDay}',
+        ],
+    ];
+
+    final csv = buildCsv(rows);
+    await copyCsvToClipboard(csv);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Скопировано в буфер обмена: ${notifier.result.items.length} '
+          'строк CSV',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +77,11 @@ class HabitListScreen extends StatelessWidget {
       notifier: notifier,
       searchHint: 'Название или цель…',
       appBarActions: [
+        IconButton(
+          tooltip: 'Выгрузить в CSV',
+          icon: const Icon(Icons.file_download_outlined),
+          onPressed: () => _exportCsv(context, notifier),
+        ),
         IconButton(
           tooltip: 'Создать привычку',
           icon: const Icon(Icons.add),

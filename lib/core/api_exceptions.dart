@@ -63,6 +63,7 @@ ApiException mapHttpError(int status, dynamic body) {
 
   return switch (status) {
     401 => UnauthorizedException(message ?? 'Требуется вход в систему.'),
+    // Supabase отвечает 400 на неверный пароль при входе.
     400 when rawMessage == 'Invalid login credentials' =>
       const UnauthorizedException('Неверная почта или пароль'),
     403 => ForbiddenException(
