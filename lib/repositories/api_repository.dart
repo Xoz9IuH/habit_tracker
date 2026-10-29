@@ -102,9 +102,6 @@ abstract class ApiRepository<T> {
 
       final options = Options(headers: {'Prefer': 'count=exact'});
 
-      // Фильтр по связанной таблице (тег привычки): PostgREST не умеет
-      // фильтровать вложенную коллекцию обычным параметром, но умеет
-      // inner join — тогда в выборку попадают только совпавшие строки.
       final tagId = params['tagId'];
       if (tagId != null && manyToMany != null) {
         query['$association!inner'] = associationColumn;
@@ -465,14 +462,12 @@ abstract class ApiRepository<T> {
 
   String? get searchColumn => null;
 
-  /// Имя связи для фильтра по связанной таблице (например, habit_tags).
   String get association {
     final raw = manyToMany ?? 'habit_tags';
     final cut = raw.indexOf('(');
     return cut == -1 ? raw : raw.substring(0, cut);
   }
 
-  /// Колонка связи, по которой идёт фильтр (tag_id).
   String get associationColumn {
     final raw = manyToMany ?? 'habit_tags(tags(id,name))';
     return raw.contains('tags(') ? 'tag_id' : 'tag_id';

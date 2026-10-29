@@ -115,8 +115,6 @@ class StatsService {
         .toList();
   }
 
-  /// Считает те же показатели, что отдавал учебный сервер, но запросами
-  /// к таблицам через PostgREST.
   Future<Stats> _cloud() async {
     final habits = await _rows('habits');
     final checkIns = await _rows('check_ins');

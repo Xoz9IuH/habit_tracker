@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../core/api_exceptions.dart';
 import '../core/auth_controller.dart';
-import '../core/config.dart';
 import '../core/layout.dart';
 
 class PasswordPolicy {
@@ -129,8 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text('Регистрация', style: theme.textTheme.headlineSmall),
                       const SizedBox(height: 4),
                       Text(
-                        'Новый пользователь получает роль «читатель». '
-                        'API: $resolvedApiBase',
+                        'Новый пользователь получает роль «читатель».',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),

@@ -2,12 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Круговая диаграмма распределения — особенность предметной области:
-/// показывает, как привычки распределены по категориям.
 class CategoryPieChart extends StatelessWidget {
   const CategoryPieChart({super.key, required this.values, this.size = 160});
 
-  /// Название категории → количество привычек.
   final Map<String, int> values;
   final double size;
 
@@ -109,7 +106,6 @@ class _PiePainter extends CustomPainter {
       start += sweep;
     }
 
-    // Вырез в середине — «пончик», чтобы читались подписи.
     final hole = Paint()..color = Colors.transparent;
     hole.blendMode = BlendMode.clear;
     canvas.drawCircle(size.center(Offset.zero), size.shortestSide * 0.28, hole);

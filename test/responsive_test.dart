@@ -91,7 +91,7 @@ void main() {
     await pumpAt(tester, const Size(360, 780), location: '/habits');
 
     expect(find.byTooltip('Разделы'), findsOneWidget);
-    expect(find.byTooltip('Пользователь и режим API'), findsOneWidget);
+    expect(find.byTooltip('Пользователь'), findsOneWidget);
   });
 
   testWidgets('ошибка загрузки показывает кнопку повтора', (tester) async {

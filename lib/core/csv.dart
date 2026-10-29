@@ -1,9 +1,7 @@
 import 'package:flutter/services.dart';
 
-/// Экспорт списка в CSV — особенность итоговой работы: данные текущего
-/// фильтра можно забрать в таблицу Excel.
 String buildCsv(List<List<String>> rows) {
-  final buffer = StringBuffer('\uFEFF'); // BOM, чтобы Excel читал кириллицу
+  final buffer = StringBuffer('\uFEFF');
   for (final row in rows) {
     buffer.writeln(row.map(_escape).join(';'));
   }
@@ -20,7 +18,6 @@ String _escape(String value) {
   return '"${value.replaceAll('"', '""')}"';
 }
 
-/// Кладёт CSV в буфер обмена и отдаёт содержимое для сохранения файла.
 Future<String> copyCsvToClipboard(String csv) async {
   await Clipboard.setData(ClipboardData(text: csv));
   return csv;

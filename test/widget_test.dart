@@ -85,7 +85,7 @@ void main() {
     expect(find.text('Спорт'), findsOneWidget);
   });
 
-  testWidgets('меню пользователя показывает роль и режим API', (tester) async {
+  testWidgets('меню пользователя показывает имя и роль', (tester) async {
     await pumpTestApp(tester);
 
     await tester.tap(find.byType(CircleAvatar).first);
@@ -93,6 +93,6 @@ void main() {
 
     expect(find.text('Администратор'), findsOneWidget);
     expect(find.text('администратор'), findsOneWidget);
-    expect(find.text('Журнал API'), findsOneWidget);
+    expect(find.text('Выйти'), findsOneWidget);
   });
 }

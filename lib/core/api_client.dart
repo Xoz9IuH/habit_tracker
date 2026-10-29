@@ -45,11 +45,8 @@ Dio buildDio({
           options.headers['Authorization'] ??=
               'Bearer ${SupabaseConfig.anonKey}';
 
-          // /auth/v1/... живёт не в REST-корне, а в корне проекта.
           final path = options.path;
           if (path.startsWith('/auth/v1/')) {
-            // Повторная отправка через dio.fetch(options) берёт адрес как
-            // baseUrl + path, поэтому подставляем сразу полный адрес.
             options.baseUrl = SupabaseConfig.url;
             if (path.contains('/token')) {
               options.headers['Authorization'] =
@@ -97,9 +94,6 @@ Dio buildDio({
             error.type == DioExceptionType.receiveTimeout ||
             error.type == DioExceptionType.sendTimeout;
         if (networkFailure && options.extra['skipOfflineTracking'] != true) {
-          // Запросы к серверу авторизации считаем сбоем сети только если
-          // приложение действительно офлайн: шлюз Supabase иногда отвечает
-          // на CORS-проверку так, что Dio сообщает о сбое соединения.
           if (!options.path.startsWith('/auth/v1/')) {
             onNetworkError?.call();
           }

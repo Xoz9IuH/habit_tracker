@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../core/api_exceptions.dart';
 import '../core/auth_controller.dart';
-import '../core/config.dart';
 import '../core/supabase_config.dart';
 import '../core/layout.dart';
 
@@ -80,14 +79,6 @@ class _LoginScreenState extends State<LoginScreen> {
         };
       });
     }
-  }
-
-  void _useAccount(String login, String password) {
-    setState(() {
-      _login.text = login;
-      _password.text = password;
-      _error = null;
-    });
   }
 
   @override
@@ -208,37 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             : () => context.go('/register'),
                         icon: const Icon(Icons.person_add_alt),
                         label: const Text('Зарегистрироваться'),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Быстрый вход:', style: theme.textTheme.bodySmall),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => _useAccount('admin', 'admin123'),
-                            child: const Text('администратор'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () =>
-                                _useAccount('librarian', 'librarian123'),
-                            child: const Text('редактор'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () => _useAccount('reader', 'reader123'),
-                            child: const Text('читатель'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        SupabaseConfig.isConfigured
-                            ? 'Данные: Supabase'
-                            : 'API: $resolvedApiBase',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
                       ),
                     ],
                   ),

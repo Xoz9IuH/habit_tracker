@@ -20,7 +20,6 @@ class HabitListScreen extends StatelessWidget {
 
   final HabitQuery initialQuery;
 
-  /// Выгружает текущую страницу списка (с учётом фильтров) в CSV.
   Future<void> _exportCsv(
     BuildContext context,
     HabitListNotifier notifier,

@@ -54,13 +54,9 @@ class AuthController extends ChangeNotifier {
     final startedAt = DateTime.now();
 
     if (usesSupabase) {
-      // В облачном режиме профиль лежит в app_users и доступен по токену.
-      // Если проверка не удалась, но ответ сервера пришёл за то же время,
-      // значит проблема не в сети — токен просрочен, сессию надо обновить.
       try {
         final me = await _loadProfile();
         if (me == null) {
-          // Токен принят, но строки в app_users нет — сессию не восстанавливаем.
           _tokens.clear();
           await _clearStored();
           notifyListeners();
@@ -131,8 +127,7 @@ class AuthController extends ChangeNotifier {
     if (session['access_token'] == null) {
       throw const UnauthorizedException('Неверный логин или пароль');
     }
-    // Облачный сбой CORS при проверке токена выглядит как Generic-ответ
-    // шлюза — повторяем вход свежими данными, прежде чем показывать ошибку.
+
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         await _applySupabaseSession(session);
@@ -250,8 +245,7 @@ class AuthController extends ChangeNotifier {
         );
       } catch (_) {}
     }
-    // Всегда удаляем ключи с текущего адреса — и старые ключи Flutter
-    // (flutter.*), которые остались от предыдущих версий приложения.
+
     await _clearStored();
     try {
       final shared = await SharedPreferences.getInstance();
@@ -267,13 +261,6 @@ class AuthController extends ChangeNotifier {
 
   void clearSessionFlag() {
     _sessionExpired = false;
-  }
-
-  void substituteRole(String role) {
-    final current = _tokens.user;
-    if (current == null) return;
-    _tokens.user = current.copyWith(role: role);
-    notifyListeners();
   }
 
   Future<AppUser?> _loadProfile() async {
@@ -308,8 +295,6 @@ class AuthController extends ChangeNotifier {
       debugPrint('Профиль не загружен, берём данные из сессии');
     }
     if (profile == null) {
-      // Резервный вариант: роль по e-mail из профиля демо-пользователя,
-      // чтобы администратор не оказывался «читателем» при сбое запроса.
       _tokens.user = AppUser.fromJson(
         _supabase!.userFromSession(session),
       ).copyWith(role: _roleHintFromEmail('${session['user']?['email']}'));
@@ -345,9 +330,6 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Роль по адресу почты — только как подсказка, если профиль из
-  /// app_users временно недоступен. Настоящие права всё равно проверяет
-  /// сервер по данным таблицы.
   String _roleHintFromEmail(String email) {
     final name = email.split('@').first.toLowerCase();
     return switch (name) {
@@ -371,8 +353,6 @@ class AuthController extends ChangeNotifier {
     await _markActive();
   }
 
-  /// Профиль, сохранённый при последнем входе (нужен, чтобы после
-  /// перезагрузки страницы сразу знать роль, пока идёт проверка сессии).
   AppUser? _storedUser() {
     final saved = _prefs.getString(_kUser);
     if (saved == null || saved.isEmpty) return null;

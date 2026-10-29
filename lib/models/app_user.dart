@@ -26,13 +26,10 @@ class AppUser {
   bool get isLibrarian => role == 'librarian';
   bool get isReader => !isAdmin && !isLibrarian;
 
-  /// В облачной версии идентификатор — UUID из Supabase, в учебной —
-  /// число из локального сервера, поэтому храним его строкой.
   String get key => '$id';
 
   bool get canRead => true;
-  // Клиентские ограничения сняты: кнопки доступны всем, а сервер все равно
-  // проверяет роль (RLS / учебный API вернёт 403).
+
   bool get canEdit => true;
   bool get canPurge => true;
   bool get canManageUsers => isAdmin;
