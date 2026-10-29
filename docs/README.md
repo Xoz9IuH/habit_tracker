@@ -12,6 +12,14 @@
 
 ## Как запустить
 
+**Ссылка на опубликованное приложение:**
+<https://xoz9iuh.github.io/habit_tracker/>
+
+Демо-аккаунты (данные в Supabase): `admin@habit.local / admin123`,
+`librarian@habit.local / librarian123`, `reader@habit.local / reader123`.
+
+Локально можно работать с учебным сервером:
+
 ```bash
 # учебный сервер с данными и REST-API
 node server-www/mock-server.js --port 8080
