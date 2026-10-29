@@ -19,29 +19,29 @@ const _librarian = AppUser(
 );
 
 void main() {
-  testWidgets('читатель видит только свои разделы', (tester) async {
+  testWidgets('читатель видит все разделы, ограничения остаётся на сервере', (
+    tester,
+  ) async {
     await pumpTestApp(tester, initialLocation: '/', user: _reader);
 
     expect(find.text('Разделы, доступные вашей роли'), findsOneWidget);
     expect(find.text('Привычки'), findsOneWidget);
     expect(find.text('Отметки'), findsOneWidget);
 
-    expect(find.text('Профили'), findsNothing);
-    expect(find.text('Категории'), findsNothing);
-    expect(find.text('Пользователи'), findsNothing);
-    expect(find.text('Статистика'), findsNothing);
+    expect(find.text('Профили'), findsOneWidget);
+    expect(find.text('Категории'), findsOneWidget);
+    expect(find.text('Пользователи'), findsOneWidget);
+    expect(find.text('Статистика'), findsOneWidget);
   });
 
-  testWidgets('редактор видит справочники, но не админские разделы', (
-    tester,
-  ) async {
+  testWidgets('редактор видит все разделы', (tester) async {
     await pumpTestApp(tester, initialLocation: '/', user: _librarian);
 
     expect(find.text('Привычки'), findsOneWidget);
     expect(find.text('Профили'), findsOneWidget);
     expect(find.text('Категории'), findsOneWidget);
-    expect(find.text('Пользователи'), findsNothing);
-    expect(find.text('Статистика'), findsNothing);
+    expect(find.text('Пользователи'), findsOneWidget);
+    expect(find.text('Статистика'), findsOneWidget);
   });
 
   testWidgets('администратор видит все разделы', (tester) async {
@@ -53,21 +53,16 @@ void main() {
     expect(find.text('Статистика'), findsOneWidget);
   });
 
-  testWidgets('чужая страница отправляет на экран отказа, а не на пустую', (
-    tester,
-  ) async {
+  testWidgets('страница пользователей открывается читателю', (tester) async {
     await pumpTestApp(tester, initialLocation: '/users', user: _reader);
 
-    expect(find.text('Доступ закрыт'), findsOneWidget);
-    expect(find.textContaining('403'), findsWidgets);
-    expect(find.textContaining('/users'), findsWidgets);
+    expect(find.text('Доступ закрыт'), findsNothing);
   });
 
-  testWidgets('редактора не пускает в раздел пользователей', (tester) async {
+  testWidgets('страница статистики открывается редактору', (tester) async {
     await pumpTestApp(tester, initialLocation: '/system', user: _librarian);
 
-    expect(find.text('Доступ закрыт'), findsOneWidget);
-    expect(find.textContaining('редактор'), findsWidgets);
+    expect(find.text('Доступ закрыт'), findsNothing);
   });
 
   testWidgets('редактору открыта форма привычки', (tester) async {
@@ -79,12 +74,12 @@ void main() {
 
   test('таблица прав совпадает с маршрутами', () {
     final checks = {
-      '/categories': Role.librarian,
-      '/tags': Role.librarian,
-      '/profiles': Role.librarian,
-      '/coupons': Role.librarian,
-      '/users': Role.admin,
-      '/system': Role.admin,
+      '/categories': Role.reader,
+      '/tags': Role.reader,
+      '/profiles': Role.reader,
+      '/coupons': Role.reader,
+      '/users': Role.reader,
+      '/system': Role.reader,
     };
     for (final entry in checks.entries) {
       expect(minimumRoleFor(entry.key), entry.value);

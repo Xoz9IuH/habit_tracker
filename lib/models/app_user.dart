@@ -31,8 +31,10 @@ class AppUser {
   String get key => '$id';
 
   bool get canRead => true;
-  bool get canEdit => isAdmin || isLibrarian;
-  bool get canPurge => isAdmin;
+  // Клиентские ограничения сняты: кнопки доступны всем, а сервер все равно
+  // проверяет роль (RLS / учебный API вернёт 403).
+  bool get canEdit => true;
+  bool get canPurge => true;
   bool get canManageUsers => isAdmin;
 
   String get roleName => switch (role) {

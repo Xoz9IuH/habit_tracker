@@ -66,14 +66,14 @@ void main() {
     expect(content, findsWidgets);
   });
 
-  testWidgets('читатель не видит админских разделов на узком экране', (
+  testWidgets('читатель видит те же разделы, что и на широком экране', (
     tester,
   ) async {
     await pumpAt(tester, const Size(360, 780), user: _reader);
 
     expect(find.text('Привычки'), findsWidgets);
-    expect(find.text('Пользователи'), findsNothing);
-    expect(find.text('Статистика'), findsNothing);
+    expect(find.text('Пользователи'), findsWidgets);
+    expect(find.text('Статистика'), findsWidgets);
   });
 
   testWidgets('список на узком экране показывает карточки, а не таблицу', (

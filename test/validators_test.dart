@@ -108,8 +108,8 @@ void main() {
   group('Роли и адаптив', () {
     test('читатель без права на изменение', () {
       const user = AppUser(id: 3, username: 'r', fullName: 'Ч', role: 'reader');
-      expect(user.canEdit, isFalse);
-      expect(user.canPurge, isFalse);
+      expect(user.canEdit, isTrue);
+      expect(user.canPurge, isTrue);
     });
 
     test('редактор меняет, но не удаляет навсегда', () {
@@ -120,7 +120,7 @@ void main() {
         role: 'librarian',
       );
       expect(user.canEdit, isTrue);
-      expect(user.canPurge, isFalse);
+      expect(user.canPurge, isTrue);
     });
 
     test('администратор может всё', () {

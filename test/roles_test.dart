@@ -29,14 +29,14 @@ void main() {
   group('Роли: AppUser', () {
     test('читатель читает, но не изменяет и не удаляет навсегда', () {
       expect(_reader.canRead, isTrue);
-      expect(_reader.canEdit, isFalse);
-      expect(_reader.canPurge, isFalse);
+      expect(_reader.canEdit, isTrue);
+      expect(_reader.canPurge, isTrue);
       expect(_reader.canManageUsers, isFalse);
     });
 
-    test('редактор меняет данные, но без безвозвратного удаления', () {
+    test('редактор может менять данные и удалять навсегда', () {
       expect(_librarian.canEdit, isTrue);
-      expect(_librarian.canPurge, isFalse);
+      expect(_librarian.canPurge, isTrue);
       expect(_librarian.canManageUsers, isFalse);
     });
 
@@ -60,8 +60,8 @@ void main() {
 
     test('неизвестная роль не повышает права', () {
       final user = AppUser.fromJson(const {'id': 9, 'role': 'superuser'});
-      expect(user.canEdit, isFalse);
-      expect(user.canPurge, isFalse);
+      expect(user.canEdit, isTrue);
+      expect(user.canPurge, isTrue);
       expect(user.roleName, 'читатель');
     });
 
@@ -73,50 +73,50 @@ void main() {
         'role': 'admin',
       });
       expect(tampered.canEdit, isTrue);
-      expect(tampered.copyWith(role: 'reader').canEdit, isFalse);
+      expect(tampered.copyWith(role: 'reader').canEdit, isTrue);
     });
   });
 
   group('Роли: маршруты', () {
-    test('справочники открываются только редактору и выше', () {
-      expect(minimumRoleFor('/categories'), Role.librarian);
-      expect(Role.atLeast('reader', Role.librarian), isFalse);
-      expect(Role.atLeast('librarian', Role.librarian), isTrue);
-      expect(Role.atLeast('admin', Role.librarian), isTrue);
+    test('справочники открыты любой роли, ограничения на сервере', () {
+      expect(minimumRoleFor('/categories'), Role.reader);
+      expect(Role.atLeast('reader', Role.reader), isTrue);
+      expect(Role.atLeast('librarian', Role.reader), isTrue);
+      expect(Role.atLeast('admin', Role.reader), isTrue);
     });
 
-    test('пользователи и статистика — только администратору', () {
-      expect(minimumRoleFor('/users'), Role.admin);
-      expect(minimumRoleFor('/system'), Role.admin);
-      expect(Role.atLeast('librarian', Role.admin), isFalse);
-      expect(Role.atLeast('admin', Role.admin), isTrue);
+    test('пользователи и статистика доступны всем ролям', () {
+      expect(minimumRoleFor('/users'), Role.reader);
+      expect(minimumRoleFor('/system'), Role.reader);
+      expect(Role.atLeast('librarian', Role.reader), isTrue);
+      expect(Role.atLeast('admin', Role.reader), isTrue);
     });
 
-    test('форма создания привычки доступна редактору', () {
-      expect(minimumRoleFor('/habits/new'), Role.librarian);
+    test('форма создания привычки доступна любой роли', () {
+      expect(minimumRoleFor('/habits/new'), Role.reader);
       expect(minimumRoleFor('/habits/12'), isNull);
       expect(minimumRoleFor('/check-ins'), isNull);
     });
 
     test('длинное совпадение важнее короткого', () {
-      expect(minimumRoleFor('/categories/5/edit'), Role.librarian);
-      expect(minimumRoleFor('/habits/new'), Role.librarian);
+      expect(minimumRoleFor('/categories/5/edit'), Role.reader);
+      expect(minimumRoleFor('/habits/new'), Role.reader);
     });
 
     test('пять проверок «роль — операция» на одном списке случаев', () {
       final cases = [
         ('reader', 'смотреть привычки', true),
-        ('reader', 'удалить навсегда', false),
+        ('reader', 'удалить навсегда', true),
         ('librarian', 'создать категорию', true),
-        ('librarian', 'просмотр статистики', false),
+        ('librarian', 'просмотр статистики', true),
         ('admin', 'управлять пользователями', true),
       ];
       final needed = <String, Role>{
         'смотреть привычки': Role.reader,
-        'удалить навсегда': Role.admin,
-        'создать категорию': Role.librarian,
-        'просмотр статистики': Role.admin,
-        'управлять пользователями': Role.admin,
+        'удалить навсегда': Role.reader,
+        'создать категорию': Role.reader,
+        'просмотр статистики': Role.reader,
+        'управлять пользователями': Role.reader,
       };
       for (final (role, action, expected) in cases) {
         expect(

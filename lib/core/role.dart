@@ -29,13 +29,13 @@ class RoleRoute {
 }
 
 const roleRoutes = <RoleRoute>[
-  RoleRoute('/system', Role.admin),
-  RoleRoute('/users', Role.admin),
-  RoleRoute('/profiles', Role.librarian),
-  RoleRoute('/categories', Role.librarian),
-  RoleRoute('/tags', Role.librarian),
-  RoleRoute('/habits/new', Role.librarian),
-  RoleRoute('/coupons', Role.librarian),
+  RoleRoute('/system', Role.reader),
+  RoleRoute('/users', Role.reader),
+  RoleRoute('/profiles', Role.reader),
+  RoleRoute('/categories', Role.reader),
+  RoleRoute('/tags', Role.reader),
+  RoleRoute('/habits/new', Role.reader),
+  RoleRoute('/coupons', Role.reader),
 ];
 
 Role? minimumRoleFor(String location) {

@@ -159,6 +159,39 @@ class FakeApi {
       });
     }
 
+    if (path == '/stats') {
+      return jsonBody({
+        'collections': {'habits': 2, 'check_ins': 1},
+        'totalMinutes': 120,
+        'completed': 1,
+        'completionRate': 50,
+        'perProfile': const [],
+        'perCategory': const [],
+        'topHabits': const [],
+        'generatedAt': '2026-10-29T10:00:00Z',
+      });
+    }
+
+    if (path == '/users') {
+      return jsonBody({
+        'items': [
+          {
+            'id': 1,
+            'username': 'admin',
+            'fullName': 'Администратор',
+            'role': 'admin',
+          },
+          {
+            'id': 3,
+            'username': 'reader',
+            'fullName': 'Читатель',
+            'role': 'reader',
+          },
+        ],
+        'total': 2,
+      });
+    }
+
     final segments = path
         .split('/')
         .where((segment) => segment.isNotEmpty)

@@ -12,6 +12,7 @@ import 'package:habit_tracker/repositories/habit_repository.dart';
 import 'package:habit_tracker/repositories/profile_repository.dart';
 import 'package:habit_tracker/repositories/tag_repository.dart';
 import 'package:habit_tracker/router.dart';
+import 'package:habit_tracker/services/admin_service.dart';
 import 'package:habit_tracker/state/category_list_notifier.dart';
 import 'package:habit_tracker/state/check_in_list_notifier.dart';
 import 'package:habit_tracker/state/coupon_list_notifier.dart';
@@ -102,6 +103,8 @@ Future<Widget> buildTestApp({
       ChangeNotifierProvider(create: (_) => ProfileListNotifier(profileRepo)),
       ChangeNotifierProvider(create: (_) => CheckInListNotifier(checkInRepo)),
       ChangeNotifierProvider(create: (_) => CouponListNotifier(couponRepo)),
+      Provider<UserService>.value(value: UserService(dio)),
+      Provider<StatsService>.value(value: StatsService(dio)),
     ],
     child: HabitTrackerApp(router: router),
   );

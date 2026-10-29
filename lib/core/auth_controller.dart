@@ -250,8 +250,18 @@ class AuthController extends ChangeNotifier {
         );
       } catch (_) {}
     }
-    _tokens.clear();
+    // Всегда удаляем ключи с текущего адреса — и старые ключи Flutter
+    // (flutter.*), которые остались от предыдущих версий приложения.
     await _clearStored();
+    try {
+      final shared = await SharedPreferences.getInstance();
+      for (final key in shared.getKeys().toList()) {
+        if (key.startsWith('flutter.')) {
+          await shared.remove(key);
+        }
+      }
+    } catch (_) {}
+    _tokens.clear();
     notifyListeners();
   }
 
@@ -297,8 +307,15 @@ class AuthController extends ChangeNotifier {
     } on ApiException {
       debugPrint('Профиль не загружен, берём данные из сессии');
     }
-    _tokens.user =
-        profile ?? AppUser.fromJson(_supabase!.userFromSession(session));
+    if (profile == null) {
+      // Резервный вариант: роль по e-mail из профиля демо-пользователя,
+      // чтобы администратор не оказывался «читателем» при сбое запроса.
+      _tokens.user = AppUser.fromJson(
+        _supabase!.userFromSession(session),
+      ).copyWith(role: _roleHintFromEmail('${session['user']?['email']}'));
+    } else {
+      _tokens.user = profile;
+    }
     await _persist();
     if (!notify) {
       try {
@@ -326,6 +343,18 @@ class AuthController extends ChangeNotifier {
       debugPrint('Справочники не загружены: $error');
     }
     notifyListeners();
+  }
+
+  /// Роль по адресу почты — только как подсказка, если профиль из
+  /// app_users временно недоступен. Настоящие права всё равно проверяет
+  /// сервер по данным таблицы.
+  String _roleHintFromEmail(String email) {
+    final name = email.split('@').first.toLowerCase();
+    return switch (name) {
+      'admin' => 'admin',
+      'librarian' => 'librarian',
+      _ => 'reader',
+    };
   }
 
   Future<void> _markActive() async {
